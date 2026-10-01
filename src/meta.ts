@@ -21,6 +21,7 @@ const publicMeta: Record<string, Omit<PageMeta, 'public' | 'status'>> = {
   '/about': { title: `About VTA | ${brand}`, description: 'Learn about VTA’s approach to transparent multi-asset technology and analytics.', robots: 'index,follow' },
   '/faq': { title: `FAQ | ${brand}`, description: 'Read transparent answers about VTA platforms, account access, data, and product availability.', robots: 'index,follow' },
   '/contact': { title: `Contact VTA | ${brand}`, description: 'Contact VTA for product and operating information.', robots: 'index,follow' },
+  '/demo': { title: `VTA Demo Workspace | ${brand}`, description: 'VTA institutional trading command-center preview with synthetic data only.', robots: 'noindex,nofollow' },
 };
 
 export const portalPaths = [

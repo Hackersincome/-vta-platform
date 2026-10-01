@@ -43,6 +43,34 @@ function sessionSecret() {
   const secret = process.env.MANUS_JWT_SECRET;
   return secret ? new TextEncoder().encode(secret) : null;
 }
+const previewPortalSurfaces = new Set(['deposit', 'withdraw']);
+function previewEnabled() {
+  return process.env.VTA_ENABLE_PREVIEW_PORTAL === 'true' && typeof process.env.VTA_PREVIEW_TOKEN === 'string' && process.env.VTA_PREVIEW_TOKEN.length >= 16;
+}
+function previewSecret() {
+  const token = process.env.VTA_PREVIEW_TOKEN;
+  return token ? new TextEncoder().encode(crypto.createHash('sha256').update(`vta-preview:${token}`).digest('hex')) : null;
+}
+function safeTokenMatch(candidate, expected) {
+  if (!candidate || !expected) return false;
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+async function previewSessionAllowed(req, pathname) {
+  if (!previewEnabled() || !pathname.startsWith('/portal/')) return false;
+  const surface = pathname.slice('/portal/'.length).split('/')[0];
+  if (!previewPortalSurfaces.has(surface)) return false;
+  const secret = previewSecret();
+  const token = cookies(req.headers.cookie).vta_preview_session;
+  if (!secret || !token) return false;
+  try {
+    const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
+    return payload.preview === true && Array.isArray(payload.surfaces) && payload.surfaces.includes(surface);
+  } catch {
+    return false;
+  }
+}
 
 async function currentUser(req) {
   const secret = sessionSecret();
@@ -173,6 +201,18 @@ app.post('/auth/logout', (_req, res) => {
   res.clearCookie('webdev_app_session', { path: '/', secure: true, sameSite: 'none' });
   res.status(204).end();
 });
+app.get('/__preview/portal/:surface', async (req, res) => {
+  const surface = typeof req.params.surface === 'string' ? req.params.surface : '';
+  if (!previewPortalSurfaces.has(surface)) return res.status(404).send('Preview surface not found.');
+  if (!previewEnabled()) return res.status(404).send('Preview Portal is disabled.');
+  const candidate = typeof req.query.token === 'string' ? req.query.token : '';
+  if (!safeTokenMatch(candidate, process.env.VTA_PREVIEW_TOKEN)) return res.status(401).send('Preview token is invalid.');
+  const secret = previewSecret();
+  const session = await new SignJWT({ preview: true, surfaces: [...previewPortalSurfaces] })
+    .setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('30m').sign(secret);
+  secureCookie(res, 'vta_preview_session', session, 30 * 60 * 1000);
+  res.redirect(302, `/portal/${surface}`);
+});
 
 let vite;
 if (!isProduction) {
@@ -220,8 +260,9 @@ app.use(async (req, res) => {
     return renderPage(req, res, req.originalUrl, 404);
   }
   if (pathname.startsWith('/portal')) {
-    const user = await currentUser(req);
-    if (!user) return res.redirect(302, `/login?next=${encodeURIComponent(req.originalUrl)}`);
+    const previewAllowed = await previewSessionAllowed(req, pathname);
+    const user = previewAllowed ? null : await currentUser(req);
+    if (!previewAllowed && !user) return res.redirect(302, `/login?next=${encodeURIComponent(req.originalUrl)}`);
   }
   if (pathname.startsWith('/admin')) {
     const user = await currentUser(req);

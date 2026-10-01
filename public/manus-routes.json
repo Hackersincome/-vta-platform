@@ -15,6 +15,7 @@
     {"path":"/contact","title":"Contact"},
     {"path":"/login","title":"Client Login"},
     {"path":"/register","title":"Register"},
+    {"path":"/demo","title":"VTA Demo Workspace"},
     {"path":"/portal","title":"Client Portal"},
     {"path":"/portal/accounts","title":"Accounts"},
     {"path":"/portal/accounts/new","title":"Create account"},
