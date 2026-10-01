@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">VTA Vector Trade and Analytics mark</title>
+  <desc id="desc">An emerald vector arrow crosses an off-white V axis inside a dark square.</desc>
+  <rect width="160" height="160" fill="#08151A"/>
+  <path d="M37 40 80 121 123 40" fill="none" stroke="#EDF4F1" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M39 51h55l-13-13m13 13-13 13" fill="none" stroke="#35D3A1" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="120" cy="119" r="8" fill="#35D3A1"/>
+</svg>
