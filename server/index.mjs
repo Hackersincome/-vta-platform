@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { createServer } from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -241,13 +242,14 @@ app.get('/__preview/portal/:surface', async (req, res) => {
   res.redirect(302, `/portal/${surface}`);
 });
 
+const httpServer = createServer(app);
 let vite;
 if (!isProduction) {
-  const { createServer } = await import('vite');
-  vite = await createServer({
+  const { createServer: createViteServer } = await import('vite');
+  vite = await createViteServer({
     root,
     appType: 'custom',
-    server: { middlewareMode: true, hmr: false },
+    server: { middlewareMode: true, hmr: { server: httpServer } },
   });
   app.use(vite.middlewares);
 } else {
@@ -299,6 +301,6 @@ app.use(async (req, res) => {
   return renderPage(req, res);
 });
 
-app.listen(port, '0.0.0.0', () => {
+httpServer.listen(port, '0.0.0.0', () => {
   console.log(`VTA listening on http://0.0.0.0:${port}`);
 });
