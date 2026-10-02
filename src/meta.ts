@@ -6,7 +6,7 @@ export type PageMeta = {
   status: number;
 };
 
-const brand = 'VTA — Vector Trade & Analytics';
+const brand = 'VTA — Vector Trading Alliance';
 const publicMeta: Record<string, Omit<PageMeta, 'public' | 'status'>> = {
   '/': { title: `${brand} | Precision for every market decision.`, description: 'VTA brings markets, terminal access, analytics, and product architecture into one composed trading ecosystem.', robots: 'index,follow' },
   '/markets': { title: `Markets | ${brand}`, description: 'Explore VTA’s multi-asset market structure across Forex, Metals, Energies, Indices, Stocks, and Crypto.', robots: 'index,follow' },
@@ -66,7 +66,7 @@ export function renderHead(pathname: string) {
     `<meta name="description" content="${safeDescription}">`,
     `<meta name="robots" content="${meta.robots}">`,
     `<meta property="og:type" content="website">`,
-    `<meta property="og:site_name" content="VTA — Vector Trade & Analytics">`,
+    `<meta property="og:site_name" content="VTA — Vector Trading Alliance">`,
     `<meta property="og:title" content="${safeTitle}">`,
     `<meta property="og:description" content="${safeDescription}">`,
     `<meta name="twitter:card" content="summary_large_image">`,

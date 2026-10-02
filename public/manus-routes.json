@@ -1,6 +1,6 @@
 {
   "routes": [
-    {"path":"/","title":"VTA — Vector Trade & Analytics"},
+    {"path":"/","title":"VTA — Vector Trading Alliance"},
     {"path":"/markets","title":"Markets"},
     {"path":"/platforms","title":"Platforms"},
     {"path":"/web-terminal","title":"Web Terminal"},
