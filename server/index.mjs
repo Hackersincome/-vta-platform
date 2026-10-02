@@ -25,7 +25,7 @@ app.use((req, res, next) => {
     "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "script-src 'self'",
+    isProduction ? "script-src 'self'" : "script-src 'self' 'unsafe-inline'",
     "connect-src 'self' ws: wss:",
     "base-uri 'self'",
     "form-action 'self'",

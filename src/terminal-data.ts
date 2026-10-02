@@ -58,10 +58,24 @@ export const browserMarketDataProvider: MarketDataProvider = {
     const needle = query.trim().toLowerCase();
     return instrumentRegistry.filter((item) => (assetClass === 'All' || item.assetClass === assetClass) && (!needle || `${item.symbol} ${item.display} ${item.assetClass}`.toLowerCase().includes(needle)));
   },
-  async getHistoricalBars(symbol, timeframe) {
-    const response = await fetch(`/api/market/klines?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(timeframe)}`);
-    if (!response.ok) return { bars: [], state: 'UNAVAILABLE' };
-    const payload = await response.json() as { bars?: Bar[]; state?: 'HISTORICAL DATA' | 'UNAVAILABLE'; source?: string };
-    return { bars: payload.bars || [], state: payload.state || 'UNAVAILABLE', source: payload.source };
+  async getHistoricalBars(symbol, timeframe, options = {}) {
+    const query = new URLSearchParams({ symbol, interval: timeframe });
+    if (options.limit !== undefined) query.set('limit', String(options.limit));
+    if (options.startTime !== undefined) query.set('startTime', String(options.startTime));
+    if (options.endTime !== undefined) query.set('endTime', String(options.endTime));
+    try {
+      const response = await fetch(`/api/market/klines?${query}`, { signal: options.signal });
+      const payload = await response.json().catch(() => ({})) as {
+        bars?: Bar[];
+        state?: 'HISTORICAL DATA' | 'UNAVAILABLE';
+        source?: string;
+        message?: string;
+      };
+      if (!response.ok) return { bars: [], state: 'UNAVAILABLE', source: payload.source, message: payload.message || 'The historical data provider is unavailable.' };
+      return { bars: payload.bars || [], state: payload.state || 'UNAVAILABLE', source: payload.source, message: payload.message };
+    } catch (error) {
+      if (options.signal?.aborted) throw error;
+      return { bars: [], state: 'UNAVAILABLE', message: 'Unable to reach the historical market data provider.' };
+    }
   },
 };

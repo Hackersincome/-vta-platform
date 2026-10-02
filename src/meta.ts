@@ -11,7 +11,7 @@ const publicMeta: Record<string, Omit<PageMeta, 'public' | 'status'>> = {
   '/': { title: `${brand} | Global markets. One measured system.`, description: 'Explore VTA’s global trading technology architecture for markets, platforms, analytics and Momentum Booster. No live market or account connections are implied.', robots: 'index,follow' },
   '/markets': { title: `Markets | ${brand}`, description: 'Explore VTA’s multi-asset market structure across Forex, Metals, Energies, Indices, Stocks, and Crypto.', robots: 'index,follow' },
   '/platforms': { title: `Platforms | ${brand}`, description: 'Discover the VTA ecosystem: Web Terminal, MetaTrader platforms, wallet architecture, and automation products.', robots: 'index,follow' },
-  '/web-terminal': { title: `Web Terminal | ${brand}`, description: 'Preview VTA’s connected market workspace architecture with transparent no-live-data states.', robots: 'index,follow' },
+  '/web-terminal': { title: `VTA Web Terminal | ${brand}`, description: 'Explore VTA’s Web Terminal with instrument search, provider-backed historical crypto charts and paper-only order estimates. No broker, live feed or connected account.', robots: 'index,follow' },
   '/mt4': { title: `MetaTrader 4 | ${brand}`, description: 'Review VTA’s prepared MT4 integration architecture and platform experience.', robots: 'index,follow' },
   '/mt5': { title: `MetaTrader 5 | ${brand}`, description: 'Review VTA’s prepared MT5 integration architecture and platform experience.', robots: 'index,follow' },
   '/robots/momentum-booster': { title: `Momentum Booster EA — Advanced V1 | ${brand}`, description: 'Explore the transparent product architecture for Momentum Booster EA — Advanced V1.', robots: 'index,follow' },
