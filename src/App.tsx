@@ -12,6 +12,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { getPageMeta } from './meta';
 import { browserMarketDataProvider, instrumentRegistry, type AssetClass, type Bar, type Instrument } from './terminal-data';
+import { TradingTerminalExperience } from './TradingTerminal';
 
 type IconItem = { label: string; to: string; icon: LucideIcon; note?: string };
 type ProductCard = { title: string; text: string; icon: LucideIcon; to: string; flag: string };
@@ -256,6 +257,10 @@ function TerminalChart({ bars, timeframe, symbol }: { bars: Bar[]; timeframe: st
 }
 
 function TerminalPage() {
+  return <PublicShell><TradingTerminalExperience /></PublicShell>;
+}
+
+function LegacyTerminalPage() {
   const [query, setQuery] = useState('');
   const [assetClass, setAssetClass] = useState<AssetClass | 'All'>('All');
   const [selectedSymbol, setSelectedSymbol] = useState<Instrument>(instrumentRegistry[0]);

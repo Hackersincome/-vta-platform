@@ -18,10 +18,24 @@ export type Bar = {
   volume?: number;
 };
 
+export type HistoricalBarsOptions = {
+  startTime?: number;
+  endTime?: number;
+  limit?: number;
+  signal?: AbortSignal;
+};
+
+export type HistoricalBarsResult = {
+  bars: Bar[];
+  state: 'HISTORICAL DATA' | 'UNAVAILABLE';
+  source?: string;
+  message?: string;
+};
+
 export interface MarketDataProvider {
   getInstruments(): Promise<Instrument[]>;
   searchInstruments(query: string, assetClass?: AssetClass | 'All'): Promise<Instrument[]>;
-  getHistoricalBars(symbol: string, timeframe: string): Promise<{ bars: Bar[]; state: 'HISTORICAL DATA' | 'UNAVAILABLE'; source?: string }>;
+  getHistoricalBars(symbol: string, timeframe: string, options?: HistoricalBarsOptions): Promise<HistoricalBarsResult>;
 }
 
 export const instrumentRegistry: Instrument[] = [
