@@ -139,6 +139,33 @@ app.get('/sitemap.xml', (_req, res) => {
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
 });
 
+const marketSymbolMap = new Map([
+  ['BTC/USDT', 'BTCUSDT'], ['ETH/USDT', 'ETHUSDT'], ['BNB/USDT', 'BNBUSDT'], ['SOL/USDT', 'SOLUSDT'],
+]);
+const marketIntervalMap = new Map([
+  ['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1h'], ['4H', '4h'], ['1D', '1d'], ['1W', '1w'], ['1M', '1M'],
+]);
+app.get('/api/market/klines', async (req, res) => {
+  const symbol = typeof req.query.symbol === 'string' ? req.query.symbol : '';
+  const interval = typeof req.query.interval === 'string' ? req.query.interval : '1H';
+  const providerSymbol = marketSymbolMap.get(symbol);
+  const providerInterval = marketIntervalMap.get(interval);
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  if (!providerSymbol || !providerInterval) {
+    return res.status(404).json({ state: 'UNAVAILABLE', bars: [], message: 'Historical data is not available for this instrument or timeframe.' });
+  }
+  try {
+    const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${providerSymbol}&interval=${providerInterval}&limit=120`);
+    if (!response.ok) throw new Error(`provider_${response.status}`);
+    const rows = await response.json();
+    const bars = rows.map((row) => ({ time: Math.floor(Number(row[0]) / 1000), open: Number(row[1]), high: Number(row[2]), low: Number(row[3]), close: Number(row[4]), volume: Number(row[5]) }));
+    return res.json({ state: 'HISTORICAL DATA', source: 'Binance public market data API', symbol, interval, bars });
+  } catch (error) {
+    console.error('market_data_unavailable', error);
+    return res.status(502).json({ state: 'UNAVAILABLE', bars: [], message: 'Historical market data provider is unavailable.' });
+  }
+});
+
 app.use('/api', (req, res) => {
   res.setHeader('Cache-Control', 'private, no-store');
   res.status(404).json({ error: 'not_found', message: `No API route exists for ${req.originalUrl}` });
