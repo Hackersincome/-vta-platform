@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Bot, BriefcaseBusiness,
-  CalendarDays, Check, ChevronDown, CircleDollarSign, Clock3, Command, CreditCard,
+  CalendarDays, Check, ChevronDown, CircleDollarSign, Clock3, Command, CreditCard, LogOut,
   Database, ExternalLink, FileText, Globe2, HelpCircle, Info, KeyRound, LayoutDashboard,
   LineChart, LockKeyhole, Menu, MessageSquare, Package, PanelLeft, Plus, Radar,
   Search, Settings, ShieldCheck, SlidersHorizontal, Sparkles, TerminalSquare,
@@ -488,10 +488,10 @@ function AuthPage({ register = false, inline = false, onDemoSignIn, onInlineMode
   return <PublicShell><section className={`auth-page shell${activeRegister ? ' auth-page--register' : ''}`}><div className="auth-copy"><span className="eyebrow">{activeRegister ? t('auth.clientRegistration') : t('auth.clientLogin')}</span><h1>{activeRegister ? t('auth.authHeroSignUp') : t('auth.authHeroSignIn')}</h1><p>{activeRegister ? t('auth.authDescriptionSignUp') : t('auth.authDescriptionSignIn')}</p><ul className="feature-list"><li><Check/> {t('auth.featureIdentity')}</li><li><Check/> {t('auth.featureSession')}</li><li><Check/> {t('auth.featureFinancial')}</li></ul><Link className="text-link" to="/faq">{t('auth.accessFaq')} <ArrowRight size={15}/></Link></div>{card}</section></PublicShell>;
 }
 
-function PortalRoute({ isDemoSession, onDemoSignOut }: { isDemoSession: boolean; onDemoSignOut: () => void }) {
+function PortalRoute({ isDemoSession, onSignOut }: { isDemoSession: boolean; onSignOut: () => Promise<void> }) {
   const location = useLocation();
   const known = portalNav.some((item) => item.to === location.pathname) || location.pathname === '/portal/robot/subscription';
-  return known ? <PortalPage isDemoSession={isDemoSession} onDemoSignOut={onDemoSignOut} /> : <NotFound />;
+  return known ? <PortalPage isDemoSession={isDemoSession} onSignOut={onSignOut} /> : <NotFound />;
 }
 
 function AdminRoute() {
@@ -504,16 +504,29 @@ function WorkspaceNavigation({ sections, onNavigate, label }: { sections: Naviga
   return <nav aria-label={label}>{sections.map((section) => <div className="sidebar-nav-section" key={section.label}><span className="sidebar-nav-label">{section.label}</span>{section.items.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} end={to === '/portal' || to === '/portal/accounts/new' || to === '/admin'} onClick={onNavigate}><Icon size={17}/><span>{label}</span></NavLink>)}</div>)}</nav>;
 }
 
-function PortalPage({ isDemoSession, onDemoSignOut }: { isDemoSession: boolean; onDemoSignOut: () => void }) {
+function PortalPage({ isDemoSession, onSignOut }: { isDemoSession: boolean; onSignOut: () => Promise<void> }) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    setSignOutError('');
+    try {
+      await onSignOut();
+    } catch {
+      setSignOutError('Could not sign out. Please try again.');
+      setIsSigningOut(false);
+    }
+  };
   const active = portalNav.find((item) => item.to === location.pathname)
     || (location.pathname.startsWith('/portal/robot/') ? portalNav.find((item) => item.to === '/portal/robot') : undefined)
     || portalNav[0];
-  return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact to="/portal"/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status tone={isDemoSession ? 'amber' : 'neutral'}>{isDemoSession ? 'DEMO / PREVIEW' : 'NOT CONNECTED'}</Status><span>{isDemoSession ? 'Frontend-only preview session' : 'Identity required'}</span></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open} isDemoSession={isDemoSession} onDemoSignOut={onDemoSignOut}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
+  return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact to="/portal"/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status tone={isDemoSession ? 'amber' : 'neutral'}>{isDemoSession ? 'DEMO / PREVIEW' : 'NOT CONNECTED'}</Status><span>{isDemoSession ? 'Frontend-only preview session' : 'Identity required'}</span>{signOutError && <span className="sidebar-signout-error" role="alert">{signOutError}</span>}<button className="sidebar-logout" type="button" onClick={() => void handleSignOut()} disabled={isSigningOut} aria-busy={isSigningOut}><LogOut size={15} aria-hidden="true"/><span>{isSigningOut ? 'Signing out…' : 'Log out'}</span></button></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open} isDemoSession={isDemoSession}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
 }
 
-function AppTopbar({ title, onMenu, kind, navigationOpen, isDemoSession = false, onDemoSignOut }: { title: string; onMenu: () => void; kind: 'portal' | 'admin'; navigationOpen: boolean; isDemoSession?: boolean; onDemoSignOut?: () => void }) {
+function AppTopbar({ title, onMenu, kind, navigationOpen, isDemoSession = false }: { title: string; onMenu: () => void; kind: 'portal' | 'admin'; navigationOpen: boolean; isDemoSession?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const dashboardTo = kind === 'portal' ? '/portal' : '/admin';
@@ -531,7 +544,7 @@ function AppTopbar({ title, onMenu, kind, navigationOpen, isDemoSession = false,
       <nav className="workspace-breadcrumbs" aria-label="Breadcrumb"><Link to="/"><Home size={13} aria-hidden="true"/>VTA Home</Link><ChevronRight size={13} aria-hidden="true"/><Link to={dashboardTo}>{dashboardLabel}</Link><ChevronRight size={13} aria-hidden="true"/><span aria-current="page">{title}</span></nav>
       <span className="mono">{kind === 'portal' ? 'CLIENT PORTAL' : 'VTA OPERATIONS'}</span><h1>{title}</h1>
     </div>
-    <div className="topbar-actions">{kind === 'portal' && <Link className="portal-home-link" to="/" aria-label="Return to VTA public homepage"><Home size={15}/><span>VTA Home</span></Link>}<button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' && isDemoSession ? 'DEMO / PREVIEW session' : kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div>{kind === 'portal' && isDemoSession && onDemoSignOut && <button className="demo-session-exit" type="button" onClick={onDemoSignOut}>Exit preview</button>}</div>
+    <div className="topbar-actions">{kind === 'portal' && <Link className="portal-home-link" to="/" aria-label="Return to VTA public homepage"><Home size={15}/><span>VTA Home</span></Link>}<button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' && isDemoSession ? 'DEMO / PREVIEW session' : kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div></div>
   </header>;
 }
 
@@ -737,6 +750,16 @@ export function App() {
     setIsDemoSession(false);
     navigate('/login', { replace: true });
   };
+  const signOut = async () => {
+    if (isDemoSession) {
+      endDemoSession();
+      return;
+    }
+    const response = await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    if (!response.ok) throw new Error('Sign out failed');
+    setIsDemoSession(false);
+    navigate('/login', { replace: true });
+  };
   return <Routes>
     <Route path="/" element={<PublicShell><HomePage /></PublicShell>} />
     <Route path="/markets" element={<MarketsPage />} />
@@ -754,7 +777,7 @@ export function App() {
     <Route path="/login" element={<AuthPage onDemoSignIn={startDemoSession} />} />
     <Route path="/register" element={<AuthPage register onDemoSignIn={startDemoSession} />} />
     <Route path="/demo" element={<DemoRoute />} />
-    <Route path="/portal/*" element={<PortalRoute isDemoSession={isDemoSession} onDemoSignOut={endDemoSession} />} />
+    <Route path="/portal/*" element={<PortalRoute isDemoSession={isDemoSession} onSignOut={signOut} />} />
     <Route path="/admin/*" element={<AdminRoute />} />
     <Route path="*" element={<NotFound />} />
   </Routes>;
