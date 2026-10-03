@@ -1647,3 +1647,46 @@ td { padding-block: 16px; }
 @media (max-width: 640px) {
   .hero--global .globe-stage > img { filter: saturate(.65) contrast(1.2) brightness(1.28); }
 }
+
+/* The original product artwork stays untouched; VTA's lighting and depth live in the presentation. */
+.platform-ecosystem { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: clamp(17px, 2.5vw, 30px); padding-block: clamp(34px, 5.5vw, 66px) clamp(68px, 8vw, 96px); }
+.platform-card { min-height: 470px; grid-template-rows: auto minmax(260px, 1fr) auto; gap: 19px; padding: clamp(18px, 2.5vw, 30px); border: 1px solid rgba(187,214,204,.16); border-radius: 5px; background: radial-gradient(ellipse at 50% 43%, rgba(73,119,114,.105), transparent 56%), linear-gradient(145deg, rgba(20,40,49,.86), rgba(8,19,26,.96)); box-shadow: 0 28px 64px rgba(0,0,0,.23), inset 0 1px rgba(255,255,255,.045); transition: border-color .35s ease, transform .35s cubic-bezier(.2,.75,.25,1), box-shadow .35s ease; }
+.platform-card:hover { transform: translateY(-5px); border-color: rgba(191,171,119,.42); box-shadow: 0 34px 74px rgba(0,0,0,.32), inset 0 1px rgba(255,255,255,.07); }
+.platform-card:focus-visible { outline: 2px solid #c7b789; outline-offset: 5px; }
+.platform-card-meta { min-height: 18px; }
+.platform-card-meta .platform-index { color: #c4ae79; font: 700 9px ui-monospace, monospace; letter-spacing: .13em; }
+.platform-index i { color: #70847c; font-style: normal; }
+.platform-card-meta .status { color: #9cad9f; font-size: 8px; letter-spacing: .08em; }
+.platform-plaque { position: relative; min-height: 260px; border: 1px solid rgba(187,214,204,.14); border-radius: 3px; background: radial-gradient(ellipse at 50% 48%, rgba(124,157,146,.11), transparent 63%), linear-gradient(145deg, rgba(223,237,229,.055), rgba(9,22,27,.52)); box-shadow: inset 0 1px rgba(255,255,255,.075), inset 0 -34px 60px rgba(0,0,0,.11), 0 20px 38px rgba(0,0,0,.17); }
+.platform-plaque::after { position: absolute; inset: 0; border: 1px solid rgba(255,255,255,.025); content: ''; pointer-events: none; }
+.platform-plaque img { display: block; max-width: min(82%, 370px); max-height: 190px; object-fit: contain; }
+.platform-plaque--mt4 { background: radial-gradient(ellipse at 50% 49%, #fff 0, #f7f8f4 63%, #e7ebe6 100%); border-color: rgba(255,255,255,.45); box-shadow: inset 0 1px rgba(255,255,255,.9), 0 20px 38px rgba(0,0,0,.24); }
+.platform-plaque--mt4 img { width: min(92%, 390px); max-width: 92%; max-height: 108px; }
+.platform-plaque--mt5 img { width: min(210px, 63%); height: 190px; max-width: 63%; max-height: 190px; }
+.platform-plaque--momentum img { width: min(250px, 67%); max-width: 67%; max-height: 247px; object-fit: contain; }
+.platform-terminal-identity { display: flex; align-items: center; justify-content: center; gap: clamp(15px, 2.2vw, 28px); color: #e6ebe5; font-family: 'Space Grotesk', sans-serif; font-size: clamp(40px, 5.6vw, 70px); font-weight: 700; letter-spacing: -.055em; }
+.platform-terminal-identity img { width: clamp(76px, 11vw, 122px); height: clamp(76px, 11vw, 122px); max-width: none; max-height: none; }
+.platform-terminal-identity span { display: grid; gap: 8px; }
+.platform-terminal-identity small { color: #aebeb4; font: 700 clamp(9px, 1vw, 12px) ui-monospace, monospace; letter-spacing: .17em; }
+.platform-card-copy { min-height: 55px; grid-template-columns: minmax(0,1fr) auto; gap: 4px 12px; padding-inline: 1px; }
+.platform-card-copy h2 { color: #eef1eb; font-size: clamp(21px, 2.35vw, 29px); letter-spacing: -.04em; }
+.platform-card-copy p { color: #a0afa7; font-size: 12px; line-height: 1.5; }
+.platform-card-copy svg { color: #c4ad75; }
+.platform-card--mt4 { animation: platform-arrive .55s .03s both; }
+.platform-card--mt5 { animation: platform-arrive .55s .10s both; }
+.platform-card--terminal { animation: platform-arrive .55s .17s both; }
+.platform-card--momentum { animation: platform-arrive .55s .24s both; }
+@keyframes platform-arrive { from { opacity: .01; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 640px) {
+  .platform-ecosystem { grid-template-columns: 1fr; gap: 19px; padding-block: 28px 62px; }
+  .platform-card { min-height: 430px; grid-template-rows: auto minmax(238px, 1fr) auto; gap: 16px; padding: 17px; }
+  .platform-plaque { min-height: 238px; }
+  .platform-plaque--mt4 img { width: min(94%, 390px); max-width: 94%; max-height: 105px; }
+  .platform-plaque--mt5 img { width: min(220px, 65%); height: 190px; max-width: 65%; max-height: 190px; }
+  .platform-plaque--momentum img { width: min(244px, 66%); max-width: 66%; max-height: 229px; }
+  .platform-terminal-identity { gap: 17px; font-size: clamp(46px, 13vw, 62px); }
+  .platform-terminal-identity img { width: clamp(82px, 22vw, 104px); height: clamp(82px, 22vw, 104px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .platform-card, .platform-card--mt4, .platform-card--mt5, .platform-card--terminal, .platform-card--momentum { animation: none !important; transition: none !important; }
+}
