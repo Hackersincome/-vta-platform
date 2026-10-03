@@ -13,6 +13,7 @@ import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-ro
 import { getPageMeta } from './meta';
 import { browserMarketDataProvider, instrumentRegistry, type AssetClass, type Bar, type Instrument } from './terminal-data';
 import { TradingTerminalExperience } from './TradingTerminal';
+import MomentumBoosterDashboard from './MomentumBoosterDashboard';
 import { useTranslation } from 'react-i18next';
 import { getLocaleSearchableLanguages, hasLocaleTranslations, setLocale, supportedLanguages } from './i18n';
 
