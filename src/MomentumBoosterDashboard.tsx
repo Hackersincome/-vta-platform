@@ -6,6 +6,7 @@ import {
   SlidersHorizontal, Square, TrendingUp, WalletCards,
 } from 'lucide-react';
 import './momentum-booster.css';
+import './momentum-booster-overrides.css';
 
 type DashboardTab = 'overview' | 'performance' | 'positions' | 'history' | 'configuration';
 type Field = { key: string; label: string; value: string | number | boolean; type?: 'number' | 'toggle' | 'select' | 'text'; options?: string[]; suffix?: string; locked?: boolean };

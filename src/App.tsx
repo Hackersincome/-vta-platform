@@ -14,6 +14,8 @@ import { getPageMeta } from './meta';
 import { browserMarketDataProvider, instrumentRegistry, type AssetClass, type Bar, type Instrument } from './terminal-data';
 import { TradingTerminalExperience } from './TradingTerminal';
 import MomentumBoosterDashboard from './MomentumBoosterDashboard';
+import ClientCommandCenter from './ClientCommandCenter';
+import PortalFundsPage from './PortalFundsPage';
 import { useTranslation } from 'react-i18next';
 import { getLocaleSearchableLanguages, hasLocaleTranslations, setLocale, supportedLanguages } from './i18n';
 
@@ -57,27 +59,30 @@ const marketFamilies = [
 ];
 
 const portalNav: IconItem[] = [
-  { label: 'Overview', to: '/portal', icon: LayoutDashboard },
-  { label: 'Accounts', to: '/portal/accounts', icon: BriefcaseBusiness },
-  { label: 'Create account', to: '/portal/accounts/new', icon: Plus },
-  { label: 'Wallet', to: '/portal/wallet', icon: WalletCards },
-  { label: 'Deposit', to: '/portal/deposit', icon: Plus },
-  { label: 'Withdraw', to: '/portal/withdraw', icon: ArrowUpRight },
-  { label: 'Transactions', to: '/portal/transactions', icon: Clock3 },
-  { label: 'Markets', to: '/portal/markets', icon: Globe2 },
-  { label: 'Terminal', to: '/portal/terminal', icon: TerminalSquare },
+  { label: 'Dashboard', to: '/portal', icon: LayoutDashboard },
+  { label: 'Web Terminal', to: '/portal/terminal', icon: TerminalSquare },
   { label: 'Positions', to: '/portal/positions', icon: Activity },
   { label: 'Orders', to: '/portal/orders', icon: FileText },
   { label: 'History', to: '/portal/history', icon: CalendarDays },
   { label: 'Momentum Booster', to: '/portal/robot', icon: Bot },
-  { label: 'Alerts', to: '/portal/alerts', icon: Bell },
-  { label: 'News', to: '/portal/news', icon: MessageSquare },
-  { label: 'Calendar', to: '/portal/calendar', icon: CalendarDays },
-  { label: 'Support', to: '/portal/support', icon: HelpCircle },
+  { label: 'Accounts', to: '/portal/accounts', icon: BriefcaseBusiness },
+  { label: 'Wallet', to: '/portal/wallet', icon: WalletCards },
+  { label: 'Deposit', to: '/portal/deposit', icon: Plus },
+  { label: 'Withdraw', to: '/portal/withdraw', icon: ArrowUpRight },
+  { label: 'Transactions', to: '/portal/transactions', icon: Clock3 },
   { label: 'Profile', to: '/portal/profile', icon: UserRound },
   { label: 'KYC', to: '/portal/kyc', icon: ShieldCheck },
   { label: 'Security', to: '/portal/security', icon: KeyRound },
   { label: 'Settings', to: '/portal/settings', icon: Settings },
+  { label: 'Notifications', to: '/portal/alerts', icon: Bell },
+  { label: 'Support', to: '/portal/support', icon: HelpCircle },
+];
+
+const portalRouteExtras = [
+  { label: 'Create account', to: '/portal/accounts/new', icon: Plus },
+  { label: 'Markets', to: '/portal/markets', icon: Globe2 },
+  { label: 'News', to: '/portal/news', icon: MessageSquare },
+  { label: 'Calendar', to: '/portal/calendar', icon: CalendarDays },
 ];
 
 const adminNav: IconItem[] = [
@@ -109,13 +114,11 @@ const adminNav: IconItem[] = [
 
 type NavigationSection = { label: string; items: IconItem[] };
 const portalSections: NavigationSection[] = [
-  { label: 'WORKSPACE', items: portalNav.slice(0, 1) },
-  { label: 'ACCOUNTS', items: portalNav.slice(1, 3) },
-  { label: 'FUNDING & ACTIVITY', items: portalNav.slice(3, 7) },
-  { label: 'TRADING', items: portalNav.slice(7, 12) },
-  { label: 'AUTOMATION', items: portalNav.slice(12, 13) },
-  { label: 'INTELLIGENCE', items: portalNav.slice(13, 16) },
-  { label: 'ACCOUNT & SUPPORT', items: portalNav.slice(16) },
+  { label: 'OVERVIEW', items: portalNav.slice(0, 1) },
+  { label: 'TRADING', items: portalNav.slice(1, 6) },
+  { label: 'FUNDS', items: portalNav.slice(6, 11) },
+  { label: 'ACCOUNT', items: portalNav.slice(11, 15) },
+  { label: 'SUPPORT', items: portalNav.slice(15) },
 ];
 const adminSections: NavigationSection[] = [
   { label: 'OVERVIEW', items: adminNav.slice(0, 1) },
@@ -292,6 +295,7 @@ function HomePage() {
     <section className="market-intelligence section"><div className="shell intelligence-layout"><div className="intelligence-copy"><span className="eyebrow">MARKET INTELLIGENCE / NEWS</span><h2>Read the forces<br/><span>behind the movement.</span></h2><p>Financial intelligence begins with context. VTA’s editorial architecture is prepared for a verified market-news feed.</p><div className="intelligence-status"><Status tone="amber">FEED NOT CONNECTED</Status><span>No live headlines are displayed.</span></div><Link className="arrow-link" to="/news">Explore market news <ArrowRight size={16}/></Link></div><div className="intelligence-field"><div className="intelligence-field-top"><span className="mono">EDITORIAL LENS / PREVIEW</span><span className="intelligence-signal"><i/> SOURCE REQUIRED</span></div><div className="intelligence-orbit" aria-hidden="true"><span/><span/><span/></div><div className="intelligence-themes"><span><i>01</i> MONETARY POLICY</span><span><i>02</i> CROSS-ASSET THEMES</span><span><i>03</i> GLOBAL ECONOMY</span></div><span className="intelligence-field-caption">ILLUSTRATIVE TOPICS · NOT LIVE NEWS</span></div></div></section>
     <section className="flagship-section flagship-section--compact"><div className="shell flagship-product"><div className="flagship-product-visual"><div className="flagship-product-halo"/><img src="/assets/branding/momentum-booster-robot.png" alt="Momentum Booster robot artwork, VTA’s MT5 automation product" loading="lazy" decoding="async"/><span className="flagship-art-label mono">VTA AUTOMATION / ADVANCED V1</span></div><div className="flagship-product-copy"><span className="eyebrow">MOMENTUM BOOSTER / MT5 EXPERT ADVISOR</span><h2>Designed for<br/><span>disciplined decisions.</span></h2><p>A clear sequence across four timeframes, built to support a trader’s process—not replace their judgment.</p><div className="flagship-truth"><Status tone="amber">RESULTS PRIVATE</Status><Status>RUNTIME UNAVAILABLE</Status></div><ArrowLink to="/robots/momentum-booster">Explore Momentum Booster</ArrowLink></div></div></section>
     <section className="platform-thread section"><div className="shell platform-thread-inner"><div className="platform-thread-copy"><span className="eyebrow">TRADING TECHNOLOGY</span><h2>Tools for the way<br/>markets are explored.</h2><p>A connected VTA experience across trading platforms, research and client access.</p><Link className="arrow-link" to="/platforms">Explore VTA platforms <ArrowRight size={16}/></Link></div><div className="platform-marks" aria-label="MetaTrader platform architecture"><Link to="/mt4" aria-label="Explore MetaTrader 4"><img src="/assets/branding/metatrader4-official.png" alt="MetaTrader 4"/><span>MT4</span></Link><span className="platform-marks-divider"/><Link to="/mt5" aria-label="Explore MetaTrader 5"><img src="/assets/branding/metatrader5.svg" alt="MetaTrader 5"/><span>MT5</span></Link><span className="platform-marks-note">PLATFORM INTEGRATIONS PREPARED</span></div></div></section>
+    <section className="service-story" aria-labelledby="service-story-title"><div className="shell service-story-inner"><div className="service-story-heading"><span className="eyebrow">SERVICE INFRASTRUCTURE / DESIGN INTENT</span><h2 id="service-story-title">Built around access.<br/><span>Grounded in transparency.</span></h2></div><p>VTA’s planned service model brings professional platforms, multi-market access and considered funding pathways into one coherent client experience. Operating conditions, payment rails and support channels are not connected in this preview.</p><div className="service-story-principles"><span><b>01</b> Trading technology</span><span><b>02</b> Account-first funding</span><span><b>03</b> Clear service status</span></div></div></section>
     <section className="home-finale"><div className="shell home-finale-inner"><div><span className="eyebrow">VTA / THE GLOBAL FINANCIAL WORLD</span><h2>Human judgment.<br/><span>Technology with perspective.</span></h2></div><div className="home-finale-actions"><Link className="button" to="/about">Discover VTA <ArrowUpRight size={16}/></Link><Link className="text-link" to="/login">Client Area <ArrowRight size={15}/></Link></div></div></section>
   </>;
 }
@@ -490,7 +494,7 @@ function AuthPage({ register = false, inline = false, onDemoSignIn, onInlineMode
 
 function PortalRoute({ isDemoSession, onSignOut }: { isDemoSession: boolean; onSignOut: () => Promise<void> }) {
   const location = useLocation();
-  const known = portalNav.some((item) => item.to === location.pathname) || location.pathname === '/portal/robot/subscription';
+  const known = portalNav.some((item) => item.to === location.pathname) || portalRouteExtras.some((item) => item.to === location.pathname) || location.pathname === '/portal/robot/subscription';
   return known ? <PortalPage isDemoSession={isDemoSession} onSignOut={onSignOut} /> : <NotFound />;
 }
 
@@ -521,6 +525,7 @@ function PortalPage({ isDemoSession, onSignOut }: { isDemoSession: boolean; onSi
     }
   };
   const active = portalNav.find((item) => item.to === location.pathname)
+    || portalRouteExtras.find((item) => item.to === location.pathname)
     || (location.pathname.startsWith('/portal/robot/') ? portalNav.find((item) => item.to === '/portal/robot') : undefined)
     || portalNav[0];
   return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact to="/portal"/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status tone={isDemoSession ? 'amber' : 'neutral'}>{isDemoSession ? 'DEMO / PREVIEW' : 'NOT CONNECTED'}</Status><span>{isDemoSession ? 'Frontend-only preview session' : 'Identity required'}</span>{signOutError && <span className="sidebar-signout-error" role="alert">{signOutError}</span>}<button className="sidebar-logout" type="button" onClick={() => void handleSignOut()} disabled={isSigningOut} aria-busy={isSigningOut}><LogOut size={15} aria-hidden="true"/><span>{isSigningOut ? 'Signing out…' : 'Log out'}</span></button></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open} isDemoSession={isDemoSession}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
@@ -580,8 +585,8 @@ function InstitutionalDashboard({ portal = false }: { portal?: boolean }) {
 }
 function DemoRoute() { return <PublicShell><section className="section shell demo-surface"><InstitutionalDashboard /></section></PublicShell>; }
 function PortalContent({ active, path }: { active: string; path: string }) {
-  if (path === '/portal') return <InstitutionalDashboard portal />;
-  if (path === '/portal/wallet' || path === '/portal/deposit' || path === '/portal/withdraw' || path === '/portal/transactions') return <FundsContent active={active}/>;
+  if (path === '/portal') return <ClientCommandCenter />;
+  if (path === '/portal/wallet' || path === '/portal/deposit' || path === '/portal/withdraw' || path === '/portal/transactions') return <PortalFundsPage active={active as 'Wallet' | 'Deposit' | 'Withdraw' | 'Transactions'}/>;
   if (path === '/portal/robot' || path === '/portal/robot/subscription') return <MomentumBoosterDashboard/>;
   if (path === '/portal/terminal') return <div className="panel"><PanelHead title="Terminal access" icon={TerminalSquare}/><EmptyState icon={TerminalSquare} title="Terminal not connected" text="No client account or broker session is linked to this Portal." action={<Link className="button button--small" to="/web-terminal">Open public terminal preview</Link>} /></div>;
   if (path === '/portal/markets') return <div className="panel"><PanelHead title="Market snapshots" icon={Globe2}/><EmptyState icon={Globe2} title="No live market data" text="Market snapshots require a connected data provider." /></div>;
