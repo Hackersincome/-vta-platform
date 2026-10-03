@@ -353,6 +353,16 @@ function AuthPage({ register = false, onDemoSignIn }: { register?: boolean; onDe
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [credentialCopyMessage, setCredentialCopyMessage] = useState('');
+
+  async function copyPreviewCredentials() {
+    try {
+      await navigator.clipboard.writeText('Username: admin\nPassword: admin1234');
+      setCredentialCopyMessage('Login details copied. Share them with your preview link.');
+    } catch {
+      setCredentialCopyMessage('Copy is unavailable here. You can select the login details above.');
+    }
+  }
 
   function handleSignIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -411,9 +421,10 @@ function AuthPage({ register = false, onDemoSignIn }: { register?: boolean; onDe
       </>}
     </> : <>
       <Status tone="amber">DEMO / PREVIEW ACCESS</Status><h2>Sign in to your account</h2><p className="auth-form-intro">Explore the client dashboard with an isolated frontend-only demo session.</p>
+      <div className="shareable-preview-login" aria-label="Shareable preview login details"><div className="shareable-preview-heading"><strong>Preview login details</strong><button type="button" onClick={copyPreviewCredentials}>Copy details</button></div><div className="shareable-preview-values"><div><span>USERNAME</span><code>admin</code></div><div><span>PASSWORD</span><code>admin1234</code></div></div><p>Share these demo credentials with the preview link. They only open the sample client dashboard.</p>{credentialCopyMessage && <span className="shareable-preview-copy-status" role="status">{credentialCopyMessage}</span>}</div>
       <form className="auth-form" onSubmit={handleSignIn} noValidate>
-        <label>Username<input name="username" autoComplete="username" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>
-        <label>Password<input name="password" type="password" autoComplete="current-password" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>
+        <label>Username<input name="username" autoComplete="username" defaultValue="admin" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>
+        <label>Password<input name="password" type="password" autoComplete="current-password" defaultValue="admin1234" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>
         {error && <p id="sign-in-error" className="auth-error" role="alert">{error}</p>}
         <button className="button button--block" type="submit">Sign in <ArrowRight size={16}/></button>
       </form>
