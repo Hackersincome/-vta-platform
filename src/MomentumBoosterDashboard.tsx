@@ -151,13 +151,13 @@ export default function MomentumBoosterDashboard() {
 
   return <section className="mb-dashboard" aria-label="Momentum Booster automated trading dashboard">
     <header className="mb-command-hero">
-      <div className="mb-hero-art"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/robot_command_center.png-zwJgozIjh6ySElhoKEMAEw0kqDcH8w.webp" alt="White and gold Momentum Booster robot in a blue-lit trading command center" /><div className="mb-art-wash" /><span className="mb-art-caption">VTA AUTOMATION<br /><b>ADVANCED V1</b></span><span className="mb-art-index">01 / EA</span></div>
+      <div className="mb-hero-art"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/robot_command_center.png-zfcxKSxnXPjG0hgswYlavkD11xnIGu.webp" alt="White and gold Momentum Booster robot in a blue-lit trading command center" /><div className="mb-art-wash" /><span className="mb-art-caption">VTA AUTOMATION<br /><b>ADVANCED V1</b></span><span className="mb-art-index">01 / EA</span></div>
       <div className="mb-hero-panel">
         <div className="mb-hero-topline"><span className="mb-kicker">AUTOMATED TRADING / MT5 EXPERT ADVISOR</span><RobotStatus label="NOT CONFIGURED" /></div>
         <div className="mb-title-row"><div><h2>Momentum Booster <span>Advanced Edition</span></h2><p>Risk-first automation through a measured multi-timeframe decision path.</p></div><span className="mb-edition">V1.00</span></div>
         <div className="mb-account-context">
           <label><span>TRADING ACCOUNT</span><select aria-label="Trading account" value="" disabled><option value="">No account linked</option></select></label>
-          <div className="mb-platform-tag"><span>MT5</span><div><small>PLATFORM</small><strong>Not connected</strong></div><ChevronDown size={14} /></div>
+          <div className="mb-platform-tag"><span>MT5</span><div><small>PLATFORM / ACCOUNT TYPE</small><strong>Not connected · unknown</strong></div><ChevronDown size={14} /></div>
         </div>
         <div className="mb-hero-readouts"><div><WalletCards size={15} /><span><small>ACCOUNT BALANCE</small><strong>—</strong><em>Awaiting account link</em></span></div><div><FileText size={15} /><span><small>LICENSE</small><strong>Unconfigured</strong><em>No license activation</em></span></div></div>
         <label className="mb-disclosure"><input type="checkbox" checked={acknowledged} onChange={(event) => { setAcknowledged(event.target.checked); setNotice(''); }} /><span>I understand automated trading risks and the <button type="button" onClick={() => setNotice('Automated trading can lose money. No broker is connected to this preview, and no trade or performance data is shown.')}>risk disclosure</button>.</span></label>
@@ -178,8 +178,9 @@ export default function MomentumBoosterDashboard() {
         <div className="mb-section-heading"><div><span className="mb-kicker">ACCOUNT SNAPSHOT</span><h3>Performance at a glance</h3></div><span className="mb-unavailable-tag"><i />Awaiting verified MT5 data</span></div>
         <div className="mb-metric-grid">{[
           { label: 'Balance', note: 'No account connected', icon: WalletCards }, { label: 'Equity', note: 'No account connected', icon: Gauge },
-          { label: 'Net P/L', note: 'No trade history available', icon: TrendingUp }, { label: 'Max drawdown', note: 'No account data available', icon: Activity },
-          { label: 'Win rate', note: 'No closed trades available', icon: BarChart3 }, { label: 'Active positions', note: 'Position feed unavailable', icon: Radio },
+          { label: 'P/L', note: 'No position feed available', icon: TrendingUp }, { label: 'Net P/L', note: 'No trade history available', icon: Activity },
+          { label: 'Drawdown', note: 'No account data available', icon: BarChart3 }, { label: 'Win rate', note: 'No closed trades available', icon: TrendingUp },
+          { label: 'Number of trades', note: 'No trade history available', icon: FileText }, { label: 'Active positions', note: 'Position feed unavailable', icon: Radio },
         ].map(({ label, note, icon: Icon }) => <article className="mb-metric" key={label}><div className="mb-metric-head"><span>{label}</span><Icon size={15} /></div><strong>—</strong><small>{note}</small></article>)}</div>
         <div className="mb-overview-lower"><section className="mb-panel mb-activity-panel"><div className="mb-panel-heading"><div><span className="mb-kicker">POSITION MONITOR</span><h3>Active positions</h3></div><button type="button" className="mb-text-button" onClick={() => setTab('positions')}>View positions <ArrowRight size={13} /></button></div><EmptyTable columns={['SYMBOL', 'SIDE / VOLUME', 'ENTRY', 'MARKET', 'SL / TP', 'FLOATING P/L']} title="No live positions" description="Position details will appear after a verified account connection. Nothing is simulated." /></section><section className="mb-panel mb-activity-panel"><div className="mb-panel-heading"><div><span className="mb-kicker">LATEST ACTIVITY</span><h3>Recent trades</h3></div><button type="button" className="mb-text-button" onClick={() => setTab('history')}>View history <ArrowRight size={13} /></button></div><EmptyTable columns={['TIME', 'SYMBOL', 'DIRECTION', 'P/L', 'STATUS']} title="No trade activity" description="Trade history is unavailable until an MT5 account is connected." /></section></div>
       </div>}

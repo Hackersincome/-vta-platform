@@ -238,3 +238,69 @@
 @media (prefers-reduced-motion: reduce) {
   .portal-shell .app-sidebar nav a,.client-command__action-links a,.client-command__tool-links a { transition: none; }
 }
+
+.portal-shell .app-sidebar {
+  width: 260px;
+  padding: 25px 15px 17px;
+  background: linear-gradient(180deg,#0c100d 0%,#0a0d0b 70%,#080a09 100%);
+  border-right-color:rgba(222,232,222,.12);
+  box-shadow:18px 0 46px rgba(0,0,0,.17);
+}
+.portal-shell.app-shell { grid-template-columns:260px minmax(0,1fr); background:#080a09; }
+.portal-shell .app-sidebar .brand { padding:0 9px; }
+.portal-shell .app-sidebar .brand img { width:35px; height:35px; }
+.portal-shell .sidebar-caption { margin:27px 9px 13px; padding-bottom:14px; border-bottom:1px solid rgba(222,232,222,.12); color:#c2d1c6; letter-spacing:.16em; }
+.portal-shell .sidebar-nav-section { margin-bottom:15px; }
+.portal-shell .sidebar-nav-label { margin:0 10px 7px; color:#76827a; font-size:9px; letter-spacing:.15em; }
+.portal-shell .app-sidebar nav a { min-height:37px; border-radius:5px; color:#a4ada5; font-size:11px; }
+.portal-shell .app-sidebar nav a:hover { color:#f1f3ee; background:rgba(255,255,255,.045); }
+.portal-shell .app-sidebar nav a.active { color:#f3f4ef; background:linear-gradient(90deg,rgba(53,197,143,.16),rgba(53,197,143,.035)); }
+.portal-shell .app-sidebar nav a.active:before { background:#53d69d; }
+.portal-shell .app-sidebar nav a.active svg { color:#53d69d; }
+.portal-shell .sidebar-footer { padding:16px 9px 4px; border-top-color:rgba(222,232,222,.14); }
+.portal-shell .sidebar-footer .status { justify-self:start; }
+.portal-shell .sidebar-logout {
+  min-height:42px;
+  margin-top:10px;
+  padding:12px 9px 0;
+  color:#d0a49b;
+  border-top:1px solid rgba(222,232,222,.12);
+  letter-spacing:.1em;
+}
+.portal-shell .sidebar-logout:hover { color:#f0b5a8; background:rgba(210,124,103,.07); }
+.portal-shell .app-topbar { min-height:80px; background:rgba(8,10,9,.9); border-bottom-color:rgba(222,232,222,.11); backdrop-filter:blur(18px); }
+.portal-shell .app-content { background:radial-gradient(ellipse at 82% 5%,rgba(40,111,77,.055),transparent 35rem); }
+.client-command { --command-line:rgba(222,232,222,.13); --command-mint:#55d69c; }
+.client-command__hero {
+  min-height:410px;
+  border-color:rgba(222,232,222,.15);
+  border-radius:12px;
+  background:radial-gradient(ellipse at 78% 53%,rgba(44,110,75,.15),transparent 36%),#090c0a;
+  box-shadow:0 31px 86px rgba(0,0,0,.3),0 1px 0 rgba(255,255,255,.045) inset;
+}
+.client-command__earth { object-position:center 44%; opacity:.58; filter:saturate(.72) contrast(1.08); }
+.client-command__hero-shade { background:linear-gradient(90deg,rgba(6,10,8,.98) 0%,rgba(6,10,8,.87) 42%,rgba(6,10,8,.23) 100%),linear-gradient(0deg,rgba(6,10,8,.64),transparent 66%); }
+.client-command__hero-copy h2 { font-size:clamp(38px,4.4vw,58px); }
+.client-command__hero-copy h2 span { color:#b6d0be; }
+.client-command__readouts { border-color:rgba(222,232,222,.15); }
+.client-command__readout { border-color:rgba(222,232,222,.12); }
+.client-command__account-note { color:#9da79f; }
+.client-command__workspace { gap:clamp(28px,4vw,62px); }
+@media(max-width:900px) {
+  .portal-shell .app-sidebar { width:260px; }
+  .portal-shell.app-shell { grid-template-columns:260px minmax(0,1fr); }
+}
+@media(max-width:820px) {
+  .portal-shell .app-sidebar { z-index:70; width:min(306px,86vw); transform:translateX(-102%); visibility:hidden; transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility .28s; }
+  .portal-shell .app-sidebar.app-sidebar--open { transform:translateX(0); visibility:visible; }
+  .portal-shell .sidebar-backdrop--visible { position:fixed; z-index:60; inset:0; display:block; width:100%; border:0; background:rgba(2,8,13,.66); backdrop-filter:blur(3px); }
+}
+@media(max-width:680px) {
+  .client-command__hero { min-height:470px; border-radius:10px; }
+  .client-command__earth { object-position:57% center; opacity:.53; }
+  .client-command__hero-shade { background:linear-gradient(0deg,rgba(6,10,8,.98) 0%,rgba(6,10,8,.8) 49%,rgba(6,10,8,.08) 100%); }
+  .client-command__hero-copy h2 { font-size:clamp(35px,9.7vw,47px); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .portal-shell .app-sidebar nav a,.client-command__action-links a,.client-command__tool-links a { transition:none !important; }
+}
