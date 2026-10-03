@@ -36,10 +36,15 @@ const en = {
     closeAccess: 'Close client access',
     clientAccess: 'Client access',
     chooseAccess: 'Choose how you would like to continue.',
+    momentumLayers: '04 decision layers',
+    momentumPlatform: 'MT5 Expert Advisor',
+    momentumIntegration: 'Source integration prepared',
   },
   auth: {
     previewAccess: 'DEMO / PREVIEW ACCESS',
     previewRegistration: 'PREVIEW REGISTRATION',
+    demoVerification: 'DEMO / PREVIEW VERIFICATION',
+    username: 'Username',
     signIn: 'Sign in',
     signUp: 'Sign up',
     createAccount: 'Create account',
@@ -52,12 +57,15 @@ const en = {
     sendCode: 'Continue / Send code',
     confirmationTitle: 'Preview confirmation',
     confirmationBody: 'In production, a confirmation code would be sent to this email. No email was sent in this preview.',
-    demoCodeHint: 'Use preview code 123456 to continue this demo.',
+    noEmailSent: 'Preview only: no email was sent and no verification service is connected.',
+    codeSent: 'We’ve prepared a demo confirmation code. No email was sent.',
+    demoCodeHint: 'Use preview code 246810 to continue this demo.',
+    invalidDemoCode: 'Use the displayed preview code to continue this demo flow.',
     confirmationCode: 'Confirmation code',
     verifyCode: 'Verify code',
     resendCode: 'Resend code',
     codeResent: 'Preview code refreshed. No email was sent.',
-    codeVerified: 'Preview code verified. Password reset is not connected in this demo.',
+    codeVerified: 'Demo code verified for this preview.',
     registrationComplete: 'Preview registration complete',
     registrationBody: 'Your information was validated in this browser only. No account was created, no details were saved or sent, and no email was generated.',
     previewCredentials: 'Preview login details',
@@ -67,6 +75,7 @@ const en = {
     demoSessionOnly: 'Preview session only',
     demoSessionNotice: 'This does not authenticate a production identity or enable account, trading, or funding actions.',
     demoIntro: 'Explore the sample client dashboard with the isolated preview login.',
+    previewCredentialsNote: 'These preview details only open the sample client dashboard.',
     signInError: 'Those demo sign-in details could not be verified. Try admin and admin1234.',
     signUpIntro: 'Preview only · Complete each field to review the registration experience.',
     firstName: 'First name',
@@ -87,11 +96,11 @@ const en = {
     dateError: 'Date of birth must be in the past.',
     passwordError: 'The passwords do not match. Please confirm your password again.',
     registerNotConnected: 'Production registration is not connected.',
-    registerNotConnectedBody: 'Account creation requires VTA's configured identity and backend services.',
+    registerNotConnectedBody: 'Account creation requires VTA’s configured identity and backend services.',
     signInTitle: 'Sign in to your account',
     signUpTitle: 'Create a client profile',
-    recoveryTitle: 'Reset your password',
-    verificationTitle: 'Verify your address',
+    recoveryTitle: 'Reset your password.',
+    verificationTitle: 'Confirm this preview request.',
     back: 'Back',
     clientLogin: 'CLIENT LOGIN',
     clientRegistration: 'CLIENT REGISTRATION',
@@ -109,42 +118,55 @@ const en = {
     productionFoot: 'Real client access continues through the separately configured identity provider.',
     accountCreated: 'Preview form complete',
     signInAgain: 'Return to sign in',
-    signInConfirmation: 'We\'ve sent a confirmation code to your email.',
+    signInConfirmation: 'We’ve prepared a demo confirmation code. No email was sent.',
   },
   language: {
     selector: 'Language',
     search: 'Search languages',
     available: 'Available languages',
     fallback: 'Interface text currently uses English until this language is translated.',
+    noResults: 'No languages match your search.',
   },
 };
 
 export const languageResources = { en: { translation: en } };
 
+function readSavedLocale(): string {
+  if (typeof document === 'undefined') return 'en';
+  const saved = document.cookie.split('; ').find((part) => part.startsWith('vta-locale='))?.split('=')[1];
+  return supportedLanguages.some(({ locale }) => locale === saved) ? (saved ?? 'en') : 'en';
+}
+
 void i18n.use(initReactI18next).init({
   resources: languageResources,
+  lng: readSavedLocale(),
   fallbackLng: 'en',
   supportedLngs: supportedLanguages.map(({ locale }) => locale),
   nonExplicitSupportedLngs: true,
   load: 'languageOnly',
   interpolation: { escapeValue: false },
-  initImmediate: false,
+  initAsync: false,
 });
+
+if (typeof document !== 'undefined') {
+  const locale = readSavedLocale();
+  document.documentElement.lang = locale;
+  document.documentElement.dir = supportedLanguages.find(({ locale: code }) => code === locale)?.direction ?? 'ltr';
+}
 
 export default i18n;
 export type SupportedLocale = (typeof supportedLanguages)[number]['locale'];
 export type LocaleDirection = (typeof supportedLanguages)[number]['direction'];
+export type TranslationCatalog = typeof en;
+export type LocaleResources = Partial<Record<SupportedLocale, { translation: TranslationCatalog }>>;
 
 export function getLocaleDirection(locale: string): LocaleDirection {
   return supportedLanguages.find((language) => language.locale === locale)?.direction ?? 'ltr';
 }
 
 export function hasLocaleTranslations(locale: string) {
-  return i18n.hasResourceBundle(locale, 'translation');
+  return i18n.hasResourceBundle(normalizeLocale(locale), 'translation');
 }
-
-export type TranslationCatalog = typeof en;
-export type LocaleResources = Partial<Record<SupportedLocale, { translation: TranslationCatalog }>>;
 
 export function registerLocaleResources(resources: LocaleResources) {
   for (const [locale, value] of Object.entries(resources)) {
@@ -190,7 +212,14 @@ export function getActiveLocaleMetadata() {
 }
 
 export function setLocale(locale: string) {
-  return i18n.changeLanguage(normalizeLocale(locale));
+  const normalized = normalizeLocale(locale);
+  const metadata = getLocaleMetadata(normalized);
+  if (typeof document !== 'undefined') {
+    document.cookie = `vta-locale=${normalized}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    document.documentElement.lang = normalized;
+    document.documentElement.dir = metadata.direction;
+  }
+  return i18n.changeLanguage(normalized);
 }
 
 export function getLocaleState() {
@@ -353,4 +382,24 @@ export function getLocaleDisplayMetadata(locale: string) {
 export function getLocaleDirectionMetadata(locale: string) {
   const language = getLocaleMetadata(locale);
   return { locale: language.locale, direction: language.direction };
+}
+
+export function getLocaleSearchResults(query: string) {
+  return getLocaleSearchableLanguages(query);
+}
+
+export function getLocaleSourceResource() {
+  return en;
+}
+
+export function getLocaleCatalogVersion() {
+  return 1;
+}
+
+export function getLocaleFallbackLanguage() {
+  return 'en';
+}
+
+export function getLocaleTranslationCoverage(locale: string) {
+  return hasLocaleTranslations(locale) ? 'translated' : 'english-fallback';
 }

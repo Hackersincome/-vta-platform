@@ -13,6 +13,8 @@ import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-ro
 import { getPageMeta } from './meta';
 import { browserMarketDataProvider, instrumentRegistry, type AssetClass, type Bar, type Instrument } from './terminal-data';
 import { TradingTerminalExperience } from './TradingTerminal';
+import { useTranslation } from 'react-i18next';
+import { getLocaleSearchableLanguages, hasLocaleTranslations, setLocale, supportedLanguages } from './i18n';
 
 type IconItem = { label: string; to: string; icon: LucideIcon; note?: string };
 type ProductCard = { title: string; text: string; icon: LucideIcon; to: string; flag: string; visual: 'terminal' | 'mt4' | 'mt5' | 'momentum'; visualAlt: string; summary: string };
@@ -212,7 +214,32 @@ function PublicHeader() {
   </header>;
 }
 
+function LanguageSelector() {
+  const { t, i18n: languageI18n } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const currentCode = (languageI18n.language || 'en').split('-')[0];
+  const current = supportedLanguages.find(({ locale }) => locale === currentCode) ?? supportedLanguages[0];
+  const filtered = getLocaleSearchableLanguages(query);
+  return <div className="language-control" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}>
+    <button className="language-trigger" type="button" aria-label={`${t('language.selector')}: ${current.name}`} aria-expanded={open} aria-controls="language-options" onClick={() => setOpen((value) => !value)}>
+      <span className="language-flag" aria-hidden="true">{current.flag}</span><span className="language-name">{current.name}</span><span className="language-code">{current.code}</span><ChevronDown size={14} aria-hidden="true" />
+    </button>
+    {open && <div className="language-popover" id="language-options" role="dialog" aria-label={t('language.available')}>
+      <label className="language-search"><Search size={15} aria-hidden="true" /><input autoFocus type="search" aria-label={t('language.search')} placeholder={t('language.search')} value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+      <div className="language-options" aria-label={t('language.available')}>
+        {filtered.map((language) => <button className={`language-option${language.locale === current.locale ? ' is-current' : ''}`} key={language.locale} type="button" aria-pressed={language.locale === current.locale} onClick={() => { void setLocale(language.locale); setOpen(false); setQuery(''); }}>
+          <span className="language-flag" aria-hidden="true">{language.flag}</span><span className="language-option-name">{language.name}<small>{language.region}</small></span><span className="language-code">{language.code}</span>
+        </button>)}
+        {filtered.length === 0 && <p className="language-empty">{t('language.noResults')}</p>}
+      </div>
+      {!hasLocaleTranslations(current.locale) && <p className="language-fallback-note">{t('language.fallback')}</p>}
+    </div>}
+  </div>;
+}
+
 function Footer() {
+  const { t } = useTranslation();
   return <footer className="site-footer">
     <div className="shell footer-grid">
       <div><Brand /><p>A measured system for global markets.</p><span className="source-note">Earth texture: NASA Black Marble. No live market connection.</span></div>
@@ -220,6 +247,7 @@ function Footer() {
       <div><h2>Trading</h2><Link to="/web-terminal">Web Terminal</Link><Link to="/robots/momentum-booster">Momentum Booster</Link><Link to="/login">Client Area</Link></div>
       <div><h2>Company</h2><Link to="/about">About</Link><Link to="/faq">FAQ</Link><Link to="/contact">Contact</Link></div>
     </div>
+    <div className="shell footer-language-row"><div><span className="eyebrow">{t('language.selector')}</span><LanguageSelector /></div><span className="footer-language-note">Translations are added as reviewed language resources.</span></div>
     <div className="shell footer-bottom"><span>© 2026 VTA — Vector Trading Alliance</span><span>Product architecture preview · No financial service is active here</span></div>
   </footer>;
 }
@@ -244,15 +272,32 @@ function EmptyState({ icon: Icon = Database, title, text, action }: { icon?: Luc
   return <div className="empty-state"><div className="empty-icon"><Icon size={22} /></div><div><h3>{title}</h3><p>{text}</p>{action}</div></div>;
 }
 
+function HomeAuthGateway() {
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<'choose' | 'signin' | 'signup'>('choose');
+  const { t } = useTranslation();
+  return <div className="home-auth-gateway">
+    <button className="button button--ghost home-terminal-trigger" type="button" aria-expanded={open} aria-controls="home-client-access" onClick={() => { setOpen((value) => !value); setMode('choose'); }}>
+      {t('home.enterTerminal')} <TerminalSquare size={17} />
+    </button>
+    <div className={`home-access-expansion${open ? ' is-open' : ''}`} id="home-client-access" aria-hidden={!open}>
+      {open && <div className="home-access-surface"><div className="home-access-heading"><div><span className="eyebrow">VTA / CLIENT ACCESS</span><h2>{mode === 'choose' ? t('home.clientAccess') : mode === 'signin' ? t('auth.authHeroSignIn') : t('auth.authHeroSignUp')}</h2><p>{t('home.chooseAccess')}</p></div><button className="home-access-close" type="button" aria-label={t('home.closeAccess')} onClick={() => { setOpen(false); setMode('choose'); }}><X size={17}/></button></div>
+        {mode === 'choose' ? <div className="home-access-choices"><button className="button" type="button" onClick={() => setMode('signin')}>{t('auth.signIn')} <ArrowRight size={16}/></button><button className="button button--ghost" type="button" onClick={() => setMode('signup')}>{t('auth.signUp')} <ArrowUpRight size={16}/></button></div> : <AuthPage key={mode} inline register={mode === 'signup'} onDemoSignIn={() => {}} onInlineModeChange={setMode}/>}
+      </div>}
+    </div>
+  </div>;
+}
+
 function HomePage() {
+  const { t } = useTranslation();
   return <>
     <section className="hero hero--global"><div className="shell hero-grid">
-      <div className="hero-copy"><span className="eyebrow">VECTOR TRADING ALLIANCE / GLOBAL TRADING TECHNOLOGY</span><h1>Global markets. <span>One measured system.</span></h1><p>A connected product architecture for market context, trading platforms and automation—designed to make the state of every service unmistakable.</p><div className="hero-actions"><Link className="button" to="/platforms">Explore the VTA system <ArrowUpRight size={17} /></Link><Link className="button button--ghost" to="/web-terminal">Enter the terminal <TerminalSquare size={17} /></Link></div><div className="connection-line"><Status>PREVIEW ENVIRONMENT</Status><span>Market data, accounts and execution are not connected.</span></div></div>
+      <div className="hero-copy"><span className="eyebrow">VECTOR TRADING ALLIANCE / GLOBAL TRADING TECHNOLOGY</span><h1>Global markets. <span>One measured system.</span></h1><p>A connected product architecture for market context, trading platforms and automation—designed to make the state of every service unmistakable.</p><div className="hero-actions"><Link className="button" to="/platforms">Explore the VTA system <ArrowUpRight size={17} /></Link><HomeAuthGateway /></div><div className="connection-line"><Status>PREVIEW ENVIRONMENT</Status><span>Market data, accounts and execution are not connected.</span></div></div>
       <div className="globe-stage" aria-label="Illustrative VTA global trading network"><div className="globe-grid" /><img src="/assets/nasa-black-marble.jpg" alt="" /><div className="orbit orbit--one" /><div className="orbit orbit--two" /><div className="vector-line vector-line--one"><i /><b /></div><div className="vector-line vector-line--two"><i /><b /></div><div className="globe-card globe-card--top"><Status tone="amber">PREVIEW ENVIRONMENT</Status><strong>VTA global network</strong><span>Infrastructure not connected</span></div><div className="globe-card globe-card--bottom"><span className="mono">MARKET ARCHITECTURE</span><strong>6 asset classes</strong><span>Reference only · no live feed</span></div></div>
     </div><div className="hero-coordinate mono" aria-hidden="true">GLOBAL INFRASTRUCTURE / 01<br/>SYSTEM STATE: PREVIEW</div></section>
     <section className="shell signal-strip" aria-label="VTA product architecture"><div><span className="mono">MARKETS</span><strong>6 asset classes</strong><small>Reference taxonomy</small></div><div><span className="mono">PLATFORMS</span><strong>Web · MT4 · MT5</strong><small>Integration prepared</small></div><div><span className="mono">MOMENTUM BOOSTER</span><strong>Advanced V1</strong><small>Runtime unavailable</small></div><div><span className="mono">MARKET DATA</span><Status>NOT CONNECTED</Status><small>Never presented as live</small></div></section>
     <section className="section shell ecosystem-story"><div className="ecosystem-story-head"><div><span className="eyebrow">THE VTA ECOSYSTEM</span><h2>One system. Distinct disciplines.</h2></div><p>Market discovery, analysis, accounts and automation belong in one environment—not in one crowded screen.</p></div><div className="ecosystem-grid">{ecosystem.map(({ icon: Icon, title, text }, index) => <article className="ecosystem-item" key={title}><span className="ecosystem-number">0{index + 1}</span><Icon size={21} /><h3>{title}</h3><p>{text}</p></article>)}</div></section>
-    <section className="section flagship-section"><div className="shell flagship-product"><div className="flagship-product-visual"><div className="flagship-product-halo"/><img src="/assets/branding/momentum-booster-robot.png" alt="Momentum Booster robot product artwork"/><span className="flagship-art-label mono">VTA AUTOMATION / ADVANCED V1</span></div><div className="flagship-product-copy"><span className="eyebrow">MOMENTUM BOOSTER / MT5 EXPERT ADVISOR</span><h2>Four timeframes.<br/><span>One deterministic sequence.</span></h2><p>H1 context informs M15 structure, M5 confirmation and M1 execution. A layered decision architecture—not a performance promise.</p><div className="homepage-pipeline" aria-label="Momentum Booster timeframe sequence"><span>H1 <small>CONTEXT</small></span><b>→</b><span>M15 <small>STRUCTURE</small></span><b>→</b><span>M5 <small>CONFIRM</small></span><b>→</b><span>M1 <small>EXECUTE</small></span></div><div className="flagship-truth"><Status tone="amber">USER TESTED / RESULTS PRIVATE</Status><Status>RUNTIME UNAVAILABLE</Status></div><ArrowLink to="/robots/momentum-booster">Explore Momentum Booster</ArrowLink></div></div></section>
+    <section className="section flagship-section"><div className="shell flagship-product"><div className="flagship-product-visual"><div className="flagship-product-halo"/><img src="/assets/branding/momentum-booster-robot.png" alt="Momentum Booster robot product artwork"/><span className="flagship-art-label mono">VTA AUTOMATION / ADVANCED V1</span></div><div className="flagship-product-copy"><span className="eyebrow">MOMENTUM BOOSTER / MT5 EXPERT ADVISOR</span><h2>Four timeframes.<br/><span>One deterministic sequence.</span></h2><p>H1 context informs M15 structure, M5 confirmation and M1 execution. A layered decision architecture—not a performance promise.</p><div className="momentum-facts" aria-label="Momentum Booster product details"><div><span className="momentum-fact-index">01</span><strong>{t('home.momentumLayers')}</strong><small>H1 context · M15 structure · M5 confirmation · M1 execution</small></div><div><span className="momentum-fact-index">02</span><strong>{t('home.momentumPlatform')}</strong><small>{t('home.momentumIntegration')}</small></div></div><div className="flagship-truth"><Status tone="amber">USER TESTED / RESULTS PRIVATE</Status><Status>RUNTIME UNAVAILABLE</Status></div><ArrowLink to="/robots/momentum-booster">Explore Momentum Booster</ArrowLink></div></div></section>
     <section className="section shell"><div className="terminal-showcase"><div className="terminal-copy"><span className="eyebrow">VTA WEB TERMINAL / PHASE 1</span><h2>Context first. Permission always.</h2><p>A purpose-built workspace for instrument discovery, historical context and paper-only order rehearsal. A verified feed is required before any live data can appear.</p><div className="terminal-badges"><Status>NO LIVE MARKET DATA</Status><Status>ORDERS DISABLED</Status></div><ArrowLink to="/web-terminal">Open terminal preview</ArrowLink></div><TerminalFrame /></div></section>
     <section className="section shell"><div className="cta-panel"><div><span className="eyebrow">VTA / BUILT AROUND CLARITY</span><h2>Technology that shows its state.</h2><p>Explore the product architecture without invented balances, performance or account activity.</p></div><div><Link className="button" to="/markets">Explore markets <ArrowRight size={17} /></Link></div></div></section>
   </>;
@@ -349,18 +394,31 @@ function ContactPage() {
   return <PublicShell><PageIntro eyebrow="CONTACT VTA" title="Start with the right conversation." text="Use this form to prepare a product enquiry. Message delivery is not configured in this initial environment." /><section className="section shell contact-grid"><div><span className="eyebrow">PRODUCT & ACCESS</span><h2>Designed for a measured next step.</h2><p>VTA is rebuilding its product foundation. A live client support channel, operating desk and account onboarding are not connected here.</p><div className="contact-points"><div><MessageSquare/><span><b>General information</b><em>Response channel unavailable</em></span></div><div><ShieldCheck/><span><b>Account access</b><em>Requires approved identity integration</em></span></div><div><Bot/><span><b>Momentum Booster</b><em>Awaiting original robot file</em></span></div></div></div><form className="contact-form" onSubmit={handleSubmit}><label>Full name<input required name="name" autoComplete="name" /></label><label>Email address<input required type="email" name="email" autoComplete="email" /></label><label>Subject<select required name="subject" defaultValue=""><option value="" disabled>Select topic</option><option>Platform architecture</option><option>Client access</option><option>Momentum Booster</option><option>General information</option></select></label><label>Message<textarea required name="message" rows={5}/></label><button className="button" type="submit">Prepare enquiry <ArrowRight size={17}/></button>{submitted && <p className="form-note"><Check size={16}/> This enquiry is not sent because a VTA support channel is not connected.</p>}</form></section></PublicShell>;
 }
 
-function AuthPage({ register = false, onDemoSignIn }: { register?: boolean; onDemoSignIn: () => void }) {
+type AuthView = 'choose' | 'signin' | 'signup' | 'forgot' | 'verification' | 'confirmation';
+
+function AuthPage({ register = false, inline = false, onDemoSignIn, onInlineModeChange }: { register?: boolean; inline?: boolean; onDemoSignIn: () => void; onInlineModeChange?: (mode: 'signin' | 'signup') => void }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [view, setView] = useState<AuthView>(inline ? register ? 'signup' : 'signin' : register ? 'signup' : 'signin');
   const [error, setError] = useState('');
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [credentialCopyMessage, setCredentialCopyMessage] = useState('');
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const activeRegister = view === 'signup';
+
+  function changeView(next: AuthView) {
+    setError('');
+    setView(next);
+    if (inline && (next === 'signin' || next === 'signup')) onInlineModeChange?.(next);
+  }
 
   async function copyPreviewCredentials() {
     try {
       await navigator.clipboard.writeText('Username: admin\nPassword: admin1234');
-      setCredentialCopyMessage('Login details copied. Share them with your preview link.');
+      setCredentialCopyMessage(t('auth.credentialsCopied'));
     } catch {
-      setCredentialCopyMessage('Copy is unavailable here. You can select the login details above.');
+      setCredentialCopyMessage(t('auth.copyUnavailable'));
     }
   }
 
@@ -368,10 +426,10 @@ function AuthPage({ register = false, onDemoSignIn }: { register?: boolean; onDe
     event.preventDefault();
     setError('');
     const formData = new FormData(event.currentTarget);
-    const username = String(formData.get('username') ?? '');
+    const username = String(formData.get('username') ?? '').trim();
     const password = String(formData.get('password') ?? '');
     if (username !== 'admin' || password !== 'admin1234') {
-      setError('Those sign-in details could not be verified. Check your entries and try again.');
+      setError(t('auth.signInError'));
       return;
     }
     onDemoSignIn();
@@ -383,56 +441,61 @@ function AuthPage({ register = false, onDemoSignIn }: { register?: boolean; onDe
     setError('');
     const formData = new FormData(event.currentTarget);
     const dateOfBirth = formData.get('dateOfBirth');
-    const password = String(formData.get('password') ?? '');
-    const confirmation = String(formData.get('confirmPassword') ?? '');
     if (typeof dateOfBirth === 'string' && dateOfBirth > new Date().toISOString().slice(0, 10)) {
-      setError('Date of birth must be in the past.');
+      setError(t('auth.dateError'));
       return;
     }
-    if (password !== confirmation) {
-      setError('The passwords do not match. Please confirm your password again.');
+    if (formData.get('password') !== formData.get('confirmPassword')) {
+      setError(t('auth.passwordError'));
       return;
     }
     setRegistrationComplete(true);
   }
 
-  return <PublicShell><section className={`auth-page shell${register ? ' auth-page--register' : ''}`}><div className="auth-copy"><span className="eyebrow">{register ? 'CLIENT REGISTRATION' : 'CLIENT LOGIN'}</span><h1>{register ? 'A considered start to your VTA experience.' : 'Welcome back to your VTA client area.'}</h1><p>{register ? 'Complete the preview form to review the onboarding experience. No account or identity record will be created here.' : 'Use the isolated preview sign-in to explore the client area. Production identity remains a separate, protected flow.'}</p><ul className="feature-list"><li><Check/> Production identity remains server-side</li><li><Check/> Demo session is isolated to this browser tab</li><li><Check/> No real accounts or financial activity</li></ul><Link className="text-link" to="/faq">Read access FAQ <ArrowRight size={15}/></Link></div><div className={`auth-card${register ? ' auth-card--register' : ''}`}>
-    {register ? <>
-      <Status tone="amber">PREVIEW REGISTRATION</Status>
-      {registrationComplete ? <div className="registration-confirmation" role="status"><span className="registration-confirmation-mark"><Check size={22}/></span><h2>Preview form complete</h2><p>Your information was validated in this browser only. No production account was created, no details were saved or sent, and no confirmation email was generated.</p><div className="auth-preview-note"><strong>Production registration is not connected.</strong><span>Account creation requires VTA&apos;s configured identity and backend services.</span></div><Link className="button button--block" to="/login">Return to sign in <ArrowRight size={16}/></Link></div> : <>
-        <h2>Create a client profile</h2><p className="auth-form-intro">Preview only · Complete each field to review the registration experience.</p>
-        <form className="auth-form" onSubmit={handleRegistration}>
-          <div className="registration-grid">
-            <label>First name<input name="firstName" autoComplete="given-name" required /></label>
-            <label>Last name<input name="lastName" autoComplete="family-name" required /></label>
-            <label>Email address<input name="email" type="email" autoComplete="email" required /></label>
-            <label>Date of birth<input name="dateOfBirth" type="date" autoComplete="bday" required /></label>
-            <label>Phone<input name="phone" type="tel" autoComplete="tel" required /></label>
-            <label>Country<select name="country" autoComplete="country-name" defaultValue="" required><option value="" disabled>Select country</option><option>Australia</option><option>Canada</option><option>France</option><option>Germany</option><option>India</option><option>Singapore</option><option>United Kingdom</option><option>United States</option><option>Other</option></select></label>
-            <label className="registration-field-wide">Address<input name="address" autoComplete="street-address" required /></label>
-            <label>Username<input name="username" autoComplete="username" minLength={3} required /></label>
-            <label>Password<input name="password" type="password" autoComplete="new-password" minLength={8} required /></label>
-            <label className="registration-field-wide">Confirm password<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required /></label>
-          </div>
-          <fieldset className="registration-consents"><legend>Required acknowledgements</legend><label><input name="terms" type="checkbox" required /><span>I agree to the Terms &amp; Conditions.</span></label><label><input name="privacy" type="checkbox" required /><span>I acknowledge the Privacy Policy.</span></label><label><input name="riskDisclosure" type="checkbox" required /><span>I have read the Risk Disclosure.</span></label></fieldset>
-          {error && <p className="auth-error" role="alert">{error}</p>}
-          <button className="button button--block" type="submit">Review registration <ArrowRight size={16}/></button>
-        </form><p className="auth-foot">Preview mode validates this form locally and does not transmit or retain your information.</p>
-      </>}
-    </> : <>
-      <Status tone="amber">DEMO / PREVIEW ACCESS</Status><h2>Sign in to your account</h2><p className="auth-form-intro">Explore the client dashboard with an isolated frontend-only demo session.</p>
-      <div className="shareable-preview-login" aria-label="Shareable preview login details"><div className="shareable-preview-heading"><strong>Preview login details</strong><button type="button" onClick={copyPreviewCredentials}>Copy details</button></div><div className="shareable-preview-values"><div><span>USERNAME</span><code>admin</code></div><div><span>PASSWORD</span><code>admin1234</code></div></div><p>Share these demo credentials with the preview link. They only open the sample client dashboard.</p>{credentialCopyMessage && <span className="shareable-preview-copy-status" role="status">{credentialCopyMessage}</span>}</div>
-      <form className="auth-form" onSubmit={handleSignIn} noValidate>
-        <label>Username<input name="username" autoComplete="username" defaultValue="admin" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>
-        <label>Password<input name="password" type="password" autoComplete="current-password" defaultValue="admin1234" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>
-        {error && <p id="sign-in-error" className="auth-error" role="alert">{error}</p>}
-        <button className="button button--block" type="submit">Sign in <ArrowRight size={16}/></button>
-      </form>
-      <div className="auth-preview-note"><strong>Preview session only</strong><span>This does not authenticate a production identity or enable account, trading, or funding actions.</span></div>
-      <div className="auth-divider"><span>Production access</span></div><a className="button button--ghost button--block" href="/auth/login">Continue with configured identity <ArrowRight size={16}/></a>
-      <Link className="auth-secondary-link" to="/register">New to VTA? Preview registration</Link><p className="auth-foot">Real client access continues through the separately configured identity provider.</p>
+  function handleSendCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const email = String(new FormData(event.currentTarget).get('email') ?? '').trim();
+    if (!email) return;
+    setVerificationEmail(email);
+    setVerificationMessage('');
+    changeView('verification');
+  }
+
+  function handleVerifyCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = String(new FormData(event.currentTarget).get('code') ?? '').trim();
+    if (code !== '246810') {
+      setError(t('auth.invalidDemoCode'));
+      return;
+    }
+    setError('');
+    setView('confirmation');
+  }
+
+  const card = <div className={`auth-card${activeRegister ? ' auth-card--register' : ''} auth-card--unified`}>
+    {view === 'choose' && <div className="auth-state auth-state--choice"><Status tone="amber">VTA / CLIENT ACCESS</Status><h2>{t('home.clientAccess')}</h2><p className="auth-form-intro">{t('home.chooseAccess')}</p><div className="home-access-choices"><button className="button button--block" type="button" onClick={() => changeView('signin')}>{t('auth.signIn')} <ArrowRight size={16}/></button><button className="button button--ghost button--block" type="button" onClick={() => changeView('signup')}>{t('auth.signUp')} <ArrowUpRight size={16}/></button></div></div>}
+    {activeRegister && <><Status tone="amber">{t('auth.previewRegistration')}</Status>{registrationComplete ? <div className="registration-confirmation" role="status"><span className="registration-confirmation-mark"><Check size={22}/></span><h2>{t('auth.accountCreated')}</h2><p>{t('auth.registrationBody')}</p><div className="auth-preview-note"><strong>{t('auth.registerNotConnected')}</strong><span>{t('auth.registerNotConnectedBody')}</span></div><button className="button button--block" type="button" onClick={() => { setRegistrationComplete(false); changeView('signin'); }}>{t('auth.signInAgain')} <ArrowRight size={16}/></button></div> : <>
+      <h2>{t('auth.signUpTitle')}</h2><p className="auth-form-intro">{t('auth.signUpIntro')}</p>
+      <form className="auth-form" onSubmit={handleRegistration}>
+        <div className="registration-grid"><label>{t('auth.firstName')}<input name="firstName" autoComplete="given-name" required /></label><label>{t('auth.lastName')}<input name="lastName" autoComplete="family-name" required /></label><label>{t('auth.emailAddress')}<input name="email" type="email" autoComplete="email" required /></label><label>{t('auth.dateOfBirth')}<input name="dateOfBirth" type="date" autoComplete="bday" required /></label><label>{t('auth.phone')}<input name="phone" type="tel" autoComplete="tel" required /></label><label>{t('auth.country')}<select name="country" autoComplete="country-name" defaultValue="" required><option value="" disabled>{t('auth.selectCountry')}</option><option>Australia</option><option>Canada</option><option>France</option><option>Germany</option><option>India</option><option>Singapore</option><option>United Kingdom</option><option>United States</option><option>Other</option></select></label><label className="registration-field-wide">{t('auth.address')}<input name="address" autoComplete="street-address" required /></label><label>{t('auth.username')}<input name="username" autoComplete="username" minLength={3} required /></label><label>{t('auth.password')}<input name="password" type="password" autoComplete="new-password" minLength={8} required /></label><label className="registration-field-wide">{t('auth.confirmPassword')}<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required /></label></div>
+        <fieldset className="registration-consents"><legend>{t('auth.acknowledgements')}</legend><label><input name="terms" type="checkbox" required /><span>{t('auth.acceptTerms')}</span></label><label><input name="privacy" type="checkbox" required /><span>{t('auth.acceptPrivacy')}</span></label><label><input name="riskDisclosure" type="checkbox" required /><span>{t('auth.acceptRisk')}</span></label></fieldset>
+        {error && <p className="auth-error" role="alert">{error}</p>}<button className="button button--block" type="submit">{t('auth.reviewRegistration')} <ArrowRight size={16}/></button>
+      </form><p className="auth-foot">{t('auth.registrationFoot')}</p><button className="auth-secondary-link auth-state-back" type="button" onClick={() => changeView('signin')}>{t('auth.backToSignIn')}</button>
+    </>}</>}
+    {view === 'signin' && <><Status tone="amber">{t('auth.previewAccess')}</Status><h2>{t('auth.signInTitle')}</h2><p className="auth-form-intro">{t('auth.demoIntro')}</p>
+      <div className="shareable-preview-login" aria-label={t('auth.previewCredentials')}><div className="shareable-preview-heading"><strong>{t('auth.previewCredentials')}</strong><button type="button" onClick={copyPreviewCredentials}>{t('auth.copyDetails')}</button></div><div className="shareable-preview-values"><div><span>USERNAME</span><code>admin</code></div><div><span>PASSWORD</span><code>admin1234</code></div></div><p>{t('auth.previewCredentialsNote')}</p>{credentialCopyMessage && <span className="shareable-preview-copy-status" role="status">{credentialCopyMessage}</span>}</div>
+      <form className="auth-form" onSubmit={handleSignIn} noValidate><label>{t('auth.usernameOrEmail')}<input name="username" autoComplete="username" defaultValue="admin" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label><label>{t('auth.password')}<input name="password" type="password" autoComplete="current-password" defaultValue="admin1234" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>{error && <p id="sign-in-error" className="auth-error" role="alert">{error}</p>}<button className="button button--block" type="submit">{t('auth.signIn')} <ArrowRight size={16}/></button></form>
+      <div className="auth-inline-actions"><button className="auth-text-button" type="button" onClick={() => changeView('forgot')}>{t('auth.forgotPassword')}</button>{inline ? <button className="auth-text-button" type="button" onClick={() => changeView('signup')}>{t('auth.newToVta')}</button> : <Link className="auth-text-button" to="/register">{t('auth.newToVta')}</Link>}</div>
+      <div className="auth-preview-note"><strong>{t('auth.demoSessionOnly')}</strong><span>{t('auth.demoSessionNotice')}</span></div>
+      {!inline && <><div className="auth-divider"><span>{t('auth.productionAccess')}</span></div><a className="button button--ghost button--block" href="/auth/login">{t('auth.productionIdentity')} <ArrowRight size={16}/></a><p className="auth-foot">{t('auth.productionFoot')}</p></>}
     </>}
-  </div></section></PublicShell>;
+    {view === 'forgot' && <div className="auth-state"><Status tone="amber">{t('auth.demoVerification')}</Status><h2>{t('auth.recoveryTitle')}</h2><p className="auth-form-intro">{t('auth.enterAddress')}</p><form className="auth-form" onSubmit={handleSendCode}><label>{t('auth.usernameOrEmail')}<input name="email" type="text" autoComplete="username" required /></label><button className="button button--block" type="submit">{t('auth.sendCode')} <ArrowRight size={16}/></button></form><div className="auth-preview-note"><strong>{t('auth.noEmailSent')}</strong><span>No message, code delivery, or account change is performed in preview mode.</span></div><button className="auth-text-button auth-state-back" type="button" onClick={() => changeView('signin')}>{t('auth.backToSignIn')}</button></div>}
+    {view === 'verification' && <div className="auth-state"><Status tone="amber">{t('auth.demoVerification')}</Status><h2>{t('auth.verificationTitle')}</h2><p className="auth-form-intro">{t('auth.codeSent')} Address entered: <strong>{verificationEmail}</strong></p><form className="auth-form" onSubmit={handleVerifyCode}><label>{t('auth.confirmationCode')}<input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} placeholder="246810" required /></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="button button--block" type="submit">{t('auth.verifyCode')} <ArrowRight size={16}/></button></form><div className="auth-preview-note"><strong>{t('auth.noEmailSent')}</strong><span>Preview code: <code>246810</code> · This is not delivered to an email inbox.</span></div><div className="auth-inline-actions"><button className="auth-text-button" type="button" onClick={() => setVerificationMessage(t('auth.codeResent'))}>{t('auth.resendCode')}</button><button className="auth-text-button" type="button" onClick={() => changeView('signin')}>{t('auth.backToSignIn')}</button></div>{verificationMessage && <p className="auth-success" role="status">{verificationMessage}</p>}</div>}
+    {view === 'confirmation' && <div className="registration-confirmation" role="status"><span className="registration-confirmation-mark"><Check size={22}/></span><Status tone="amber">{t('auth.confirmationTitle')}</Status><h2>{t('auth.confirmationTitle')}</h2><p>{t('auth.codeVerified')} {t('auth.noEmailSent')}</p><button className="button button--block" type="button" onClick={() => changeView('signin')}>{t('auth.backToSignIn')} <ArrowRight size={16}/></button></div>}
+  </div>;
+
+  if (inline) return <div className="inline-auth-wrap" key={view}>{card}</div>;
+  return <PublicShell><section className={`auth-page shell${activeRegister ? ' auth-page--register' : ''}`}><div className="auth-copy"><span className="eyebrow">{activeRegister ? t('auth.clientRegistration') : t('auth.clientLogin')}</span><h1>{activeRegister ? t('auth.authHeroSignUp') : t('auth.authHeroSignIn')}</h1><p>{activeRegister ? t('auth.authDescriptionSignUp') : t('auth.authDescriptionSignIn')}</p><ul className="feature-list"><li><Check/> {t('auth.featureIdentity')}</li><li><Check/> {t('auth.featureSession')}</li><li><Check/> {t('auth.featureFinancial')}</li></ul><Link className="text-link" to="/faq">{t('auth.accessFaq')} <ArrowRight size={15}/></Link></div>{card}</section></PublicShell>;
 }
 
 function PortalRoute({ isDemoSession, onDemoSignOut }: { isDemoSession: boolean; onDemoSignOut: () => void }) {
