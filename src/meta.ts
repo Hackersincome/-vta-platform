@@ -8,7 +8,7 @@ export type PageMeta = {
 
 const brand = 'VTA — Vector Trading Alliance';
 const publicMeta: Record<string, Omit<PageMeta, 'public' | 'status'>> = {
-  '/': { title: `${brand} | Global markets. One measured system.`, description: 'Explore VTA’s global trading technology architecture for markets, platforms, analytics and Momentum Booster. No live market or account connections are implied.', robots: 'index,follow' },
+  '/': { title: `${brand} | Global Markets & Trading Technology`, description: 'Explore VTA’s global markets experience across gold, forex, crypto, indices, trading platforms, automation and market intelligence. Editorial visuals are illustrative; no live market data or financial performance is presented.', robots: 'index,follow' },
   '/markets': { title: `Markets | ${brand}`, description: 'Explore VTA’s multi-asset market structure across Forex, Metals, Energies, Indices, Stocks, and Crypto.', robots: 'index,follow' },
   '/platforms': { title: `Platforms | ${brand}`, description: 'Discover the VTA ecosystem: Web Terminal, MetaTrader platforms, wallet architecture, and automation products.', robots: 'index,follow' },
   '/web-terminal': { title: `VTA Web Terminal | ${brand}`, description: 'Explore VTA’s Web Terminal with instrument search, provider-backed historical crypto charts and paper-only order estimates. No broker, live feed or connected account.', robots: 'index,follow' },
