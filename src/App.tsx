@@ -107,7 +107,7 @@ type NavigationSection = { label: string; items: IconItem[] };
 const portalSections: NavigationSection[] = [
   { label: 'WORKSPACE', items: portalNav.slice(0, 1) },
   { label: 'ACCOUNTS', items: portalNav.slice(1, 3) },
-  { label: 'FUNDS', items: portalNav.slice(3, 7) },
+  { label: 'FUNDING & ACTIVITY', items: portalNav.slice(3, 7) },
   { label: 'TRADING', items: portalNav.slice(7, 12) },
   { label: 'AUTOMATION', items: portalNav.slice(12, 13) },
   { label: 'INTELLIGENCE', items: portalNav.slice(13, 16) },
@@ -115,12 +115,13 @@ const portalSections: NavigationSection[] = [
 ];
 const adminSections: NavigationSection[] = [
   { label: 'OVERVIEW', items: adminNav.slice(0, 1) },
-  { label: 'CLIENTS & ACCOUNTS', items: adminNav.slice(1, 5) },
-  { label: 'FINANCIAL OPERATIONS', items: adminNav.slice(5, 9) },
-  { label: 'TRADING OPERATIONS', items: adminNav.slice(9, 11) },
+  { label: 'CLIENT ACCESS', items: adminNav.slice(1, 5) },
+  { label: 'FUNDING & PAYMENTS', items: adminNav.slice(5, 9) },
+  { label: 'TRADING', items: adminNav.slice(9, 11) },
   { label: 'MARKET INFRASTRUCTURE', items: adminNav.slice(11, 14) },
   { label: 'PRODUCT & RISK', items: adminNav.slice(14, 17) },
-  { label: 'GOVERNANCE', items: adminNav.slice(17) },
+  { label: 'OPERATIONS', items: adminNav.slice(17, 20) },
+  { label: 'ACCESS & AUDIT', items: adminNav.slice(20) },
 ];
 
 function usePageMeta() {
@@ -168,7 +169,7 @@ function PublicNavigation({ onNavigate }: { onNavigate?: () => void }) {
     {publicNav.map((item) => <NavLink key={item.to} to={item.to} onClick={onNavigate}>{item.label}</NavLink>)}
     {publicNavGroups.map((group) => {
       const isActive = group.items.some((item) => item.to === location.pathname);
-      return <details className={`public-nav-group ${isActive ? 'is-active' : ''}`} key={group.label}>
+      return <details className={`public-nav-group ${isActive ? 'is-active' : ''}`} key={group.label} onClick={(event) => { if ((event.target as HTMLElement).closest('a')) { event.currentTarget.open = false; onNavigate?.(); } }}>
         <summary>{group.label}<ChevronDown size={14} aria-hidden="true" /></summary>
         <div className="public-nav-menu">
           {group.items.map((item) => <NavLink key={item.to} to={item.to} onClick={onNavigate}>{item.label}</NavLink>)}
@@ -181,12 +182,12 @@ function PublicNavigation({ onNavigate }: { onNavigate?: () => void }) {
 
 function PublicHeader() {
   const [open, setOpen] = useState(false);
-  return <header className="site-header" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}>
+  return <header className="site-header" onKeyDown={(event) => { if (event.key === 'Escape') { setOpen(false); event.currentTarget.querySelectorAll<HTMLDetailsElement>('.public-nav-group[open]').forEach((menu) => { menu.open = false; }); } }}>
     <div className="shell header-inner">
       <Brand />
       <nav className="desktop-nav" aria-label="Primary navigation"><PublicNavigation /></nav>
       <div className="header-actions">
-        <Link className="text-link" to="/login">Client login</Link>
+        <Link className="text-link" to="/login">Client Area</Link>
         <Link className="button button--small" to="/register">Open portal <ArrowUpRight size={15} /></Link>
       </div>
       <button className="menu-button" type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? 'Close navigation' : 'Open navigation'}>
@@ -195,7 +196,7 @@ function PublicHeader() {
     </div>
     <nav id="mobile-navigation" className={`mobile-nav ${open ? 'mobile-nav--open' : ''}`} aria-label="Mobile navigation">
       <PublicNavigation onNavigate={() => setOpen(false)} />
-      <NavLink to="/login" onClick={() => setOpen(false)}>Client login</NavLink>
+      <NavLink to="/login" onClick={() => setOpen(false)}>Client Area</NavLink>
       <NavLink className="button" to="/register" onClick={() => setOpen(false)}>Open portal <ArrowUpRight size={15} /></NavLink>
     </nav>
   </header>;
@@ -206,7 +207,7 @@ function Footer() {
     <div className="shell footer-grid">
       <div><Brand /><p>A measured system for global markets.</p><span className="source-note">Earth texture: NASA Black Marble. No live market connection.</span></div>
       <div><h2>Explore</h2><Link to="/markets">Markets</Link><Link to="/platforms">Platforms</Link><Link to="/analysis">Analysis</Link><Link to="/news">Market news</Link><Link to="/calendar">Economic calendar</Link></div>
-      <div><h2>Trading</h2><Link to="/web-terminal">Web Terminal</Link><Link to="/robots/momentum-booster">Momentum Booster</Link><Link to="/login">Client login</Link></div>
+      <div><h2>Trading</h2><Link to="/web-terminal">Web Terminal</Link><Link to="/robots/momentum-booster">Momentum Booster</Link><Link to="/login">Client Area</Link></div>
       <div><h2>Company</h2><Link to="/about">About</Link><Link to="/faq">FAQ</Link><Link to="/contact">Contact</Link></div>
     </div>
     <div className="shell footer-bottom"><span>© 2026 VTA — Vector Trading Alliance</span><span>Product architecture preview · No financial service is active here</span></div>
@@ -357,7 +358,7 @@ function AdminRoute() {
 }
 
 function WorkspaceNavigation({ sections, onNavigate, label }: { sections: NavigationSection[]; onNavigate: () => void; label: string }) {
-  return <nav aria-label={label}>{sections.map((section) => <div className="sidebar-nav-section" key={section.label}><span className="sidebar-nav-label">{section.label}</span>{section.items.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} end={to === '/portal' || to === '/admin'} onClick={onNavigate}><Icon size={17}/><span>{label}</span></NavLink>)}</div>)}</nav>;
+  return <nav aria-label={label}>{sections.map((section) => <div className="sidebar-nav-section" key={section.label}><span className="sidebar-nav-label">{section.label}</span>{section.items.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} end={to === '/portal' || to === '/portal/accounts/new' || to === '/admin'} onClick={onNavigate}><Icon size={17}/><span>{label}</span></NavLink>)}</div>)}</nav>;
 }
 
 function PortalPage() {
@@ -376,14 +377,15 @@ function AppTopbar({ title, onMenu, kind, navigationOpen }: { title: string; onM
   const dashboardLabel = kind === 'portal' ? 'Client dashboard' : 'Operations dashboard';
   const goBack = () => {
     const historyIndex = window.history.state?.idx;
-    if (typeof historyIndex === 'number' && historyIndex > 0) navigate(-1);
-    else navigate(location.pathname === dashboardTo ? '/' : dashboardTo);
+    if (location.pathname === dashboardTo) navigate('/');
+    else if (typeof historyIndex === 'number' && historyIndex > 0) navigate(-1);
+    else navigate(dashboardTo);
   };
   return <header className="app-topbar">
     <button className="app-menu" type="button" onClick={onMenu} aria-label={navigationOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navigationOpen} aria-controls="workspace-sidebar"><PanelLeft size={20}/></button>
     <button className="workspace-back" type="button" onClick={goBack} aria-label="Go back"><ArrowLeft size={16}/><span>Back</span></button>
     <div className="workspace-heading">
-      <nav className="workspace-breadcrumbs" aria-label="Workspace shortcuts"><Link to="/"><Home size={13} aria-hidden="true"/>VTA Home</Link><ChevronRight size={13} aria-hidden="true"/><Link to={dashboardTo}>{dashboardLabel}</Link></nav>
+      <nav className="workspace-breadcrumbs" aria-label="Breadcrumb"><Link to="/"><Home size={13} aria-hidden="true"/>VTA Home</Link><ChevronRight size={13} aria-hidden="true"/><Link to={dashboardTo}>{dashboardLabel}</Link><ChevronRight size={13} aria-hidden="true"/><span aria-current="page">{title}</span></nav>
       <span className="mono">{kind === 'portal' ? 'CLIENT PORTAL' : 'VTA OPERATIONS'}</span><h1>{title}</h1>
     </div>
     <div className="topbar-actions"><button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div></div>

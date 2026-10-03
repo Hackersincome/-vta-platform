@@ -1299,8 +1299,9 @@ td { padding-block: 16px; }
 .workspace-back { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 35px; padding: 0 9px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; background: transparent; font-size: 12px; }
 .workspace-back:hover { color: var(--text); border-color: var(--line-strong); background: rgba(203,233,223,.04); }
 .workspace-heading { min-width: 0; }
-.workspace-breadcrumbs { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; color: var(--muted-2); font-size: 10px; }
-.workspace-breadcrumbs a { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+.workspace-breadcrumbs { min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; margin-bottom: 2px; color: var(--muted-2); font-size: 10px; white-space: nowrap; }
+.workspace-breadcrumbs a { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+.workspace-breadcrumbs > span { min-width: 0; overflow: hidden; color: var(--muted-2); text-overflow: ellipsis; }
 .workspace-breadcrumbs a:hover { color: var(--mint); }
 .workspace-breadcrumbs > svg { flex: 0 0 auto; opacity: .65; }
 .app-topbar .workspace-heading > .mono { font-size: 9px; }
