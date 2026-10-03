@@ -569,7 +569,7 @@ function DemoRoute() { return <PublicShell><section className="section shell dem
 function PortalContent({ active, path }: { active: string; path: string }) {
   if (path === '/portal') return <InstitutionalDashboard portal />;
   if (path === '/portal/wallet' || path === '/portal/deposit' || path === '/portal/withdraw' || path === '/portal/transactions') return <FundsContent active={active}/>;
-  if (path === '/portal/robot' || path === '/portal/robot/subscription') return <RobotContent/>;
+  if (path === '/portal/robot' || path === '/portal/robot/subscription') return <MomentumBoosterDashboard/>;
   if (path === '/portal/terminal') return <div className="panel"><PanelHead title="Terminal access" icon={TerminalSquare}/><EmptyState icon={TerminalSquare} title="Terminal not connected" text="No client account or broker session is linked to this Portal." action={<Link className="button button--small" to="/web-terminal">Open public terminal preview</Link>} /></div>;
   if (path === '/portal/markets') return <div className="panel"><PanelHead title="Market snapshots" icon={Globe2}/><EmptyState icon={Globe2} title="No live market data" text="Market snapshots require a connected data provider." /></div>;
   return <div className="panel"><PanelHead title={active} icon={Database}/><EmptyState title={`No ${active.toLowerCase()} available`} text="This client area remains empty until a verified VTA account and relevant data service are connected." /></div>;
