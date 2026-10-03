@@ -6,10 +6,10 @@ import {
   Database, ExternalLink, FileText, Globe2, HelpCircle, Info, KeyRound, LayoutDashboard,
   LineChart, LockKeyhole, Menu, MessageSquare, Package, PanelLeft, Plus, Radar,
   Search, Settings, ShieldCheck, SlidersHorizontal, Sparkles, TerminalSquare,
-  UserRound, Users, WalletCards, X, Zap, Landmark,
+  UserRound, Users, WalletCards, X, Zap, Landmark, ArrowLeft, ChevronRight, Home,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { getPageMeta } from './meta';
 import { browserMarketDataProvider, instrumentRegistry, type AssetClass, type Bar, type Instrument } from './terminal-data';
 import { TradingTerminalExperience } from './TradingTerminal';
@@ -20,8 +20,11 @@ type ProductCard = { title: string; text: string; icon: LucideIcon; to: string; 
 const publicNav = [
   { label: 'Markets', to: '/markets' },
   { label: 'Platforms', to: '/platforms' },
-  { label: 'Analysis', to: '/analysis' },
-  { label: 'Momentum Booster', to: '/robots/momentum-booster' },
+];
+
+const publicNavGroups = [
+  { label: 'Research', items: [{ label: 'Analysis', to: '/analysis' }, { label: 'Market news', to: '/news' }, { label: 'Economic calendar', to: '/calendar' }] },
+  { label: 'Trading', items: [{ label: 'Web Terminal', to: '/web-terminal' }, { label: 'Momentum Booster', to: '/robots/momentum-booster' }] },
 ];
 
 const products: ProductCard[] = [
@@ -159,26 +162,39 @@ function ArrowLink({ to, children, className = '' }: { to: string; children: Rea
   return <Link className={`arrow-link ${className}`} to={to}>{children}<ArrowRight size={16} aria-hidden="true" /></Link>;
 }
 
+function PublicNavigation({ onNavigate }: { onNavigate?: () => void }) {
+  const location = useLocation();
+  return <>
+    {publicNav.map((item) => <NavLink key={item.to} to={item.to} onClick={onNavigate}>{item.label}</NavLink>)}
+    {publicNavGroups.map((group) => {
+      const isActive = group.items.some((item) => item.to === location.pathname);
+      return <details className={`public-nav-group ${isActive ? 'is-active' : ''}`} key={group.label}>
+        <summary>{group.label}<ChevronDown size={14} aria-hidden="true" /></summary>
+        <div className="public-nav-menu">
+          {group.items.map((item) => <NavLink key={item.to} to={item.to} onClick={onNavigate}>{item.label}</NavLink>)}
+        </div>
+      </details>;
+    })}
+    <NavLink to="/about" onClick={onNavigate}>About</NavLink>
+  </>;
+}
+
 function PublicHeader() {
   const [open, setOpen] = useState(false);
-  return <header className="site-header">
+  return <header className="site-header" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}>
     <div className="shell header-inner">
       <Brand />
-      <nav className="desktop-nav" aria-label="Primary navigation">
-        {publicNav.map((item) => <NavLink key={item.to} to={item.to}>{item.label}</NavLink>)}
-        <NavLink to="/about">About</NavLink>
-      </nav>
+      <nav className="desktop-nav" aria-label="Primary navigation"><PublicNavigation /></nav>
       <div className="header-actions">
         <Link className="text-link" to="/login">Client login</Link>
         <Link className="button button--small" to="/register">Open portal <ArrowUpRight size={15} /></Link>
       </div>
-      <button className="menu-button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="mobile-navigation" aria-label="Toggle navigation">
+      <button className="menu-button" type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? 'Close navigation' : 'Open navigation'}>
         {open ? <X /> : <Menu />}
       </button>
     </div>
     <nav id="mobile-navigation" className={`mobile-nav ${open ? 'mobile-nav--open' : ''}`} aria-label="Mobile navigation">
-      {publicNav.map((item) => <NavLink key={item.to} to={item.to} onClick={() => setOpen(false)}>{item.label}</NavLink>)}
-      <NavLink to="/about" onClick={() => setOpen(false)}>About</NavLink>
+      <PublicNavigation onNavigate={() => setOpen(false)} />
       <NavLink to="/login" onClick={() => setOpen(false)}>Client login</NavLink>
       <NavLink className="button" to="/register" onClick={() => setOpen(false)}>Open portal <ArrowUpRight size={15} /></NavLink>
     </nav>
@@ -189,8 +205,8 @@ function Footer() {
   return <footer className="site-footer">
     <div className="shell footer-grid">
       <div><Brand /><p>A measured system for global markets.</p><span className="source-note">Earth texture: NASA Black Marble. No live market connection.</span></div>
-      <div><h2>Explore</h2><Link to="/markets">Markets</Link><Link to="/platforms">Platforms</Link><Link to="/analysis">Analysis</Link></div>
-      <div><h2>Access</h2><Link to="/web-terminal">Web Terminal</Link><Link to="/robots/momentum-booster">Momentum Booster</Link><Link to="/login">Client login</Link></div>
+      <div><h2>Explore</h2><Link to="/markets">Markets</Link><Link to="/platforms">Platforms</Link><Link to="/analysis">Analysis</Link><Link to="/news">Market news</Link><Link to="/calendar">Economic calendar</Link></div>
+      <div><h2>Trading</h2><Link to="/web-terminal">Web Terminal</Link><Link to="/robots/momentum-booster">Momentum Booster</Link><Link to="/login">Client login</Link></div>
       <div><h2>Company</h2><Link to="/about">About</Link><Link to="/faq">FAQ</Link><Link to="/contact">Contact</Link></div>
     </div>
     <div className="shell footer-bottom"><span>© 2026 VTA — Vector Trading Alliance</span><span>Product architecture preview · No financial service is active here</span></div>
@@ -198,7 +214,7 @@ function Footer() {
 }
 
 function PublicShell({ children }: { children: React.ReactNode }) {
-  return <><PublicHeader /><main id="main-content">{children}</main><Footer /></>;
+  return <><a className="skip-link" href="#main-content">Skip to content</a><PublicHeader /><main id="main-content" tabIndex={-1}>{children}</main><Footer /></>;
 }
 
 function PageIntro({ eyebrow, title, text, actions }: { eyebrow: string; title: string; text: string; actions?: React.ReactNode }) {
@@ -330,7 +346,7 @@ function AuthPage({ register = false }: { register?: boolean }) {
 
 function PortalRoute() {
   const location = useLocation();
-  const known = portalNav.some((item) => item.to === location.pathname);
+  const known = portalNav.some((item) => item.to === location.pathname) || location.pathname === '/portal/robot/subscription';
   return known ? <PortalPage /> : <NotFound />;
 }
 
@@ -347,12 +363,31 @@ function WorkspaceNavigation({ sections, onNavigate, label }: { sections: Naviga
 function PortalPage() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const active = portalNav.find((item) => item.to === location.pathname) || portalNav[0];
-  return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status>NOT CONNECTED</Status><span>Identity required</span></div></aside><main className="app-main"><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
+  const active = portalNav.find((item) => item.to === location.pathname)
+    || (location.pathname.startsWith('/portal/robot/') ? portalNav.find((item) => item.to === '/portal/robot') : undefined)
+    || portalNav[0];
+  return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status>NOT CONNECTED</Status><span>Identity required</span></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
 }
 
 function AppTopbar({ title, onMenu, kind, navigationOpen }: { title: string; onMenu: () => void; kind: 'portal' | 'admin'; navigationOpen: boolean }) {
-  return <header className="app-topbar"><button className="app-menu" onClick={onMenu} aria-label={navigationOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navigationOpen} aria-controls="workspace-sidebar"><PanelLeft size={20}/></button><div><span className="mono">{kind === 'portal' ? 'CLIENT PORTAL' : 'VTA OPERATIONS'}</span><h1>{title}</h1></div><div className="topbar-actions"><button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div></div></header>;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dashboardTo = kind === 'portal' ? '/portal' : '/admin';
+  const dashboardLabel = kind === 'portal' ? 'Client dashboard' : 'Operations dashboard';
+  const goBack = () => {
+    const historyIndex = window.history.state?.idx;
+    if (typeof historyIndex === 'number' && historyIndex > 0) navigate(-1);
+    else navigate(location.pathname === dashboardTo ? '/' : dashboardTo);
+  };
+  return <header className="app-topbar">
+    <button className="app-menu" type="button" onClick={onMenu} aria-label={navigationOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navigationOpen} aria-controls="workspace-sidebar"><PanelLeft size={20}/></button>
+    <button className="workspace-back" type="button" onClick={goBack} aria-label="Go back"><ArrowLeft size={16}/><span>Back</span></button>
+    <div className="workspace-heading">
+      <nav className="workspace-breadcrumbs" aria-label="Workspace shortcuts"><Link to="/"><Home size={13} aria-hidden="true"/>VTA Home</Link><ChevronRight size={13} aria-hidden="true"/><Link to={dashboardTo}>{dashboardLabel}</Link></nav>
+      <span className="mono">{kind === 'portal' ? 'CLIENT PORTAL' : 'VTA OPERATIONS'}</span><h1>{title}</h1>
+    </div>
+    <div className="topbar-actions"><button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div></div>
+  </header>;
 }
 
 function PaymentLogo({ name, label }: { name: 'tether' | 'bitcoin' | 'ethereum' | 'binance' | 'tron' | 'visa' | 'mastercard'; label: string }) {
@@ -508,7 +543,7 @@ function AdminPage() {
     ? { label: 'Client details', to: location.pathname, icon: Users }
     : (adminNav.find((item) => item.to === location.pathname) || adminNav[0]);
   const denied = new URLSearchParams(location.search).has('denied');
-  return <div className="app-shell admin-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close operations navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar app-sidebar--admin ${open ? 'app-sidebar--open' : ''}`}><Brand compact/><div className="sidebar-caption">ADMIN / OPERATIONS</div><WorkspaceNavigation sections={adminSections} onNavigate={() => setOpen(false)} label="Admin navigation"/><div className="sidebar-footer"><Status tone="amber">RESTRICTED</Status><span>Role-based access</span></div></aside><main className="app-main"><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="admin" navigationOpen={open}/><div className="app-content"><div className="access-banner"><LockKeyhole size={18}/><span>{denied ? 'Administrator identity is valid but does not have an approved VTA operations role.' : 'Administrative routes are server-protected. No operational record is exposed without an approved role.'}</span></div><AdminOperationsContent active={active.label}/></div></main></div>;
+  return <div className="app-shell admin-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close operations navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar app-sidebar--admin ${open ? 'app-sidebar--open' : ''}`}><Brand compact/><div className="sidebar-caption">ADMIN / OPERATIONS</div><WorkspaceNavigation sections={adminSections} onNavigate={() => setOpen(false)} label="Admin navigation"/><div className="sidebar-footer"><Status tone="amber">RESTRICTED</Status><span>Role-based access</span></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="admin" navigationOpen={open}/><div className="app-content"><div className="access-banner"><LockKeyhole size={18}/><span>{denied ? 'Administrator identity is valid but does not have an approved VTA operations role.' : 'Administrative routes are server-protected. No operational record is exposed without an approved role.'}</span></div><AdminOperationsContent active={active.label}/></div></main></div>;
 }
 
 function AdminContent({ active }: { active: string }) { return <><div className="admin-summary"><div><span className="eyebrow">OPERATIONS CONTROL</span><h2>{active}</h2><p>Search, filter and status architecture is ready. There are no client, payment, KYC, market, or execution records in this environment.</p></div><div className="filter-row"><div className="search-control"><Search size={16}/><input aria-label={`Search ${active}`} placeholder={`Search ${active.toLowerCase()}`} /></div><button className="button button--ghost button--small"><SlidersHorizontal size={15}/>Filter</button></div></div><div className="table-card admin-table"><table><thead><tr><th>Record</th><th>State</th><th>Owner</th><th>Updated</th><th aria-label="Actions"></th></tr></thead><tbody><tr><td colSpan={5}><EmptyState icon={Database} title={`No ${active.toLowerCase()} records`} text="VTA does not create example customer or financial operations data. Connect an authorized operational data source to populate this table." /></td></tr></tbody></table></div></>;
