@@ -15,7 +15,7 @@ type FundingStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
 type FlowStep = 'method' | 'option' | 'network' | 'details' | 'review' | 'processing' | 'result';
 type OutcomeChoice = 'Pending' | 'Completed' | 'Failed';
 
-export type FundingTransaction = {
+type FundingTransaction = {
   id: string;
   type: 'Deposit' | 'Withdrawal';
   method: FundingMethod;
@@ -56,7 +56,7 @@ const METHOD_CARDS: { name: FundingMethod; description: string; icon: typeof Lan
   { name: 'Cards', description: 'Visa or Mastercard · sandbox only', icon: CreditCard },
 ];
 
-export function readDemoFundingTransactions(): FundingTransaction[] {
+function readDemoFundingTransactions(): FundingTransaction[] {
   if (typeof window === 'undefined') return [];
   try {
     const saved = JSON.parse(window.sessionStorage.getItem(TRANSACTION_STORAGE_KEY) || '[]');
@@ -67,7 +67,7 @@ export function readDemoFundingTransactions(): FundingTransaction[] {
   }
 }
 
-export function saveDemoFundingTransactions(transactions: FundingTransaction[]) {
+function saveDemoFundingTransactions(transactions: FundingTransaction[]) {
   if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.setItem(TRANSACTION_STORAGE_KEY, JSON.stringify(transactions.slice(0, 100)));
@@ -92,18 +92,9 @@ function isFundingTransaction(value: unknown): value is FundingTransaction {
     && Array.isArray(item.details);
 }
 
-export default function PortalFundsPage({
-  active,
-  transactions = [],
-  onCreateTransaction,
-  onUpdateTransaction,
-}: {
-  active: FundsView;
-  transactions?: FundingTransaction[];
-  onCreateTransaction: (transaction: FundingTransaction) => void;
-  onUpdateTransaction: (id: string, status: FundingStatus) => void;
-}) {
+export default function PortalFundsPage({ active }: { active: FundsView }) {
   const withdrawal = active === 'Withdraw';
+  const [transactions, setTransactions] = useState<FundingTransaction[]>([]);
   const [step, setStep] = useState<FlowStep>('method');
   const [method, setMethod] = useState<FundingMethod | null>(null);
   const [option, setOption] = useState('');
@@ -139,8 +130,13 @@ export default function PortalFundsPage({
     : method === 'Cryptocurrency' && withdrawal && currentNetwork
       ? currentNetwork.fee
       : 0;
-  const estimatedReceived = Math.max(0, numericAmount - fee);
+  const estimatedReceived = withdrawal ? numericAmount : Math.max(0, numericAmount - fee);
   const assetName = ASSETS.find((item) => item.code === asset)?.name || asset;
+  const resultStatus = transactions.find((item) => item.id === transactionId)?.status || sandboxOutcome;
+
+  useEffect(() => {
+    setTransactions(readDemoFundingTransactions());
+  }, []);
 
   useEffect(() => {
     setStep('method');
@@ -148,6 +144,20 @@ export default function PortalFundsPage({
     setOption('');
     setNetworkCode('');
     setAmount('');
+    setSenderName('');
+    setBeneficiaryName('');
+    setBankName('');
+    setAccountNumber('');
+    setSwiftCode('');
+    setReference('');
+    setWalletAddress('');
+    setTxHash('');
+    setNetworkConfirmed(false);
+    setCardholder('');
+    setCardNumber('');
+    setExpiry('');
+    setCvv('');
+    setProofFile(null);
     setError('');
     setTransactionId('');
     setModalTransaction(null);
@@ -172,6 +182,22 @@ export default function PortalFundsPage({
         : step === 'details' ? (method === 'Cryptocurrency' ? 3 : 2)
           : step === 'review' ? (method === 'Cryptocurrency' ? 4 : 3)
             : (method === 'Cryptocurrency' ? 5 : 4);
+
+  function recordTransaction(transaction: FundingTransaction) {
+    setTransactions((current) => {
+      const updated = [transaction, ...current].slice(0, 100);
+      saveDemoFundingTransactions(updated);
+      return updated;
+    });
+  }
+
+  function updateTransactionStatus(id: string, status: FundingStatus) {
+    setTransactions((current) => {
+      const updated = current.map((transaction) => transaction.id === id ? { ...transaction, status } : transaction);
+      saveDemoFundingTransactions(updated);
+      return updated;
+    });
+  }
 
   function chooseMethod(next: FundingMethod) {
     setMethod(next);
@@ -223,6 +249,9 @@ export default function PortalFundsPage({
       if (withdrawal && (!beneficiaryName.trim() || !bankName.trim() || !accountNumber.trim() || !swiftCode.trim())) {
         return 'Enter the beneficiary, bank, account/IBAN and SWIFT details to continue.';
       }
+      if (withdrawal && !/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?$/i.test(swiftCode.trim())) {
+        return 'Enter a valid 8 or 11 character SWIFT / BIC code.';
+      }
       if (!withdrawal && !senderName.trim()) return 'Enter the sender name to continue.';
     }
     if (method === 'Cryptocurrency') {
@@ -238,6 +267,14 @@ export default function PortalFundsPage({
       const digits = cardNumber.replace(/\D/g, '');
       if (!cardholder.trim()) return 'Enter the cardholder name.';
       if (!isLuhnValid(digits)) return 'Check the card number and try again.';
+      if (option === 'Visa' && !digits.startsWith('4')) return 'Enter a Visa card number for this sandbox method.';
+      if (option === 'Mastercard') {
+        const twoDigitPrefix = Number(digits.slice(0, 2));
+        const fourDigitPrefix = Number(digits.slice(0, 4));
+        if (!((twoDigitPrefix >= 51 && twoDigitPrefix <= 55) || (fourDigitPrefix >= 2221 && fourDigitPrefix <= 2720))) {
+          return 'Enter a Mastercard card number for this sandbox method.';
+        }
+      }
       if (!isExpiryValid(expiry)) return 'Enter a valid future expiry date in MM/YY format.';
       if (!/^\d{3,4}$/.test(cvv)) return 'Enter a valid 3 or 4 digit security code.';
     }
@@ -304,10 +341,10 @@ export default function PortalFundsPage({
       status: 'Processing',
       details: detailRows,
     };
-    onCreateTransaction(transaction);
+    recordTransaction(transaction);
     setStep('processing');
     setTimeout(() => {
-      onUpdateTransaction(id, sandboxOutcome);
+      updateTransactionStatus(id, sandboxOutcome);
       setIsLoading(false);
       setStep('result');
       setCardNumber('');
@@ -323,6 +360,15 @@ export default function PortalFundsPage({
     setOption('');
     setNetworkCode('');
     setAmount('');
+    setSenderName('');
+    setBeneficiaryName('');
+    setBankName('');
+    setAccountNumber('');
+    setSwiftCode('');
+    setReference('');
+    setWalletAddress('');
+    setTxHash('');
+    setCardholder('');
     setError('');
     setTransactionId('');
     setProofFile(null);
@@ -395,10 +441,10 @@ export default function PortalFundsPage({
 
             {step === 'option' && method && (
               <div className="funding-panel">
-                <div className="funding-panel__intro"><span className="funding-step-label">STEP 02 / {method.toUpperCase()}</span><h3>{method === 'Bank Transfer' ? 'Choose a transfer rail' : 'Choose your card network'}</h3><p>{method === 'Bank Transfer' ? 'Available transfer types are shown for review only; VTA bank instructions are not connected.' : 'Select the card brand you would use in a real provider checkout. No card information is sent.'}</p></div>
-                <div className="funding-option-list">
+                <div className="funding-panel__intro"><span className="funding-step-label">STEP 02 / {method.toUpperCase()}</span><h3>{method === 'Bank Transfer' ? 'Choose a transfer rail' : method === 'Cryptocurrency' ? 'Choose a crypto asset' : 'Choose your card network'}</h3><p>{method === 'Bank Transfer' ? 'Available transfer types are shown for review only; VTA bank instructions are not connected.' : method === 'Cryptocurrency' ? 'Select the asset first, then choose its exact blockchain network. This preview does not issue a receiving wallet.' : 'Select a card brand for the sandbox checkout. No card information is transmitted.'}</p></div>
+                {method === 'Cryptocurrency' ? <div className="funding-asset-grid">{ASSETS.map((item) => <button type="button" key={item.code} className="funding-asset-option" onClick={() => chooseOption(item.code)}><BrandLogo brand={item.logo} large /><span><strong>{item.code}</strong><small>{item.name} · {item.description}</small></span><ArrowRight size={14} /></button>)}</div> : <div className="funding-option-list">
                   {method === 'Bank Transfer' ? BANK_OPTIONS.map((item) => <button type="button" key={item.name} className="funding-option" onClick={() => chooseOption(item.name)}><span className="funding-option__icon"><Banknote size={19} /></span><span><strong>{item.name}</strong><small>{item.note}</small></span><ArrowRight size={15} /></button>) : method === 'Cards' ? (['Visa', 'Mastercard'] as const).map((brand) => <button type="button" key={brand} className="funding-option funding-option--card" onClick={() => chooseOption(brand)}><BrandLogo brand={brand.toLowerCase() as 'visa' | 'mastercard'} large /><span><strong>{brand}</strong><small>Secure card checkout · sandbox</small></span><ArrowRight size={15} /></button>) : null}
-                </div>
+                </div>}
                 <BackButton onClick={() => setStep('method')} label="Back to methods" />
               </div>
             )}
@@ -424,7 +470,7 @@ export default function PortalFundsPage({
                 {method === 'Cryptocurrency' && <div className="funding-asset-summary"><BrandLogo brand={ASSETS.find((item) => item.code === asset)?.logo || 'tether'} large /><span><strong>{assetName} ({asset})</strong><small>{currentNetwork?.name} · {networkCode}</small></span><button type="button" onClick={() => setStep('network')}>Change network</button></div>}
 
                 {method === 'Cryptocurrency' && !withdrawal && <div className="funding-receive-preview">
-                  <div className="funding-receive-preview__address"><span className="funding-field-kicker">WALLET ADDRESS</span><strong>Not issued</strong><p>A verified custody provider is required to issue an actual receiving address. No deposit address is generated in this preview.</p><button type="button" className="funding-copy" onClick={() => void copySandboxReference()}><Copy size={14} />{copied ? 'Copied preview reference' : 'Copy Address'}</button></div>
+                  <div className="funding-receive-preview__address"><span className="funding-field-kicker">WALLET ADDRESS</span><strong>Not issued</strong><p>A verified custody provider is required to issue an actual receiving address. No deposit address is generated in this preview.</p><button type="button" className="funding-copy" onClick={() => void copySandboxReference()}><Copy size={14} />{copied ? 'Copied preview reference' : 'Copy sandbox reference'}</button></div>
                   <div className="funding-qr-panel"><div className="funding-qr-frame"><QRCode value={`VTA-SANDBOX-NOT-A-WALLET|${asset}|${networkCode}|DO-NOT-SEND`} size={116} bgColor="#ffffff" fgColor="#102220" /></div><strong>Preview QR only</strong><small>Not a wallet address. Do not send assets.</small></div>
                 </div>}
 
@@ -433,7 +479,7 @@ export default function PortalFundsPage({
                     <Field label="Beneficiary name" value={beneficiaryName} onChange={setBeneficiaryName} placeholder="Name on the receiving account" autoComplete="off" />
                     <Field label="Beneficiary bank" value={bankName} onChange={setBankName} placeholder="Receiving bank" autoComplete="off" />
                     <Field label="Account number / IBAN" value={accountNumber} onChange={setAccountNumber} placeholder="Account or IBAN" autoComplete="off" />
-                    <Field label="SWIFT / BIC" value={swiftCode} onChange={setSwiftCode} placeholder="8–11 character code" autoComplete="off" />
+                    <Field label="SWIFT / BIC" value={swiftCode} onChange={(value) => setSwiftCode(value.toUpperCase().replace(/\s/g, '').slice(0, 11))} placeholder="8–11 character code" autoComplete="off" maxLength={11} />
                   </> : <>
                     <Field label="Sender name" value={senderName} onChange={setSenderName} placeholder="Name shown on transfer" autoComplete="name" />
                     <Field label="Reference / transaction ID (optional)" value={reference} onChange={setReference} placeholder="Your transfer reference" autoComplete="off" />
@@ -452,7 +498,7 @@ export default function PortalFundsPage({
                   {withdrawal && method === 'Cryptocurrency' && <label className="funding-confirmation funding-field--wide"><input type="checkbox" checked={networkConfirmed} onChange={(event) => setNetworkConfirmed(event.target.checked)} /><span>I have verified the destination address and selected network. I understand a network mismatch may result in permanent loss.</span></label>}
                 </div>
 
-                {method === 'Cryptocurrency' && withdrawal && currentNetwork && <div className="funding-fee-summary"><span>Network fee <strong>{currentNetwork.fee} {asset}</strong></span><span>Estimated total deducted <strong>{numericAmount > 0 ? (numericAmount + currentNetwork.fee).toFixed(asset === 'BTC' || asset === 'ETH' ? 8 : 2) : '—'} {asset}</strong></span><span>Estimated processing <strong>{currentNetwork.eta}</strong></span></div>}
+                {method === 'Cryptocurrency' && currentNetwork && <div className="funding-fee-summary">{withdrawal ? <><span>Network fee <strong>{currentNetwork.fee} {asset}</strong></span><span>Estimated total deducted <strong>{numericAmount > 0 ? (numericAmount + currentNetwork.fee).toFixed(asset === 'BTC' || asset === 'ETH' ? 8 : 2) : '—'} {asset}</strong></span></> : <><span>Network fee estimate <strong>{currentNetwork.fee} {asset} · paid by sender</strong></span><span>Estimated received <strong>{numericAmount > 0 ? formatAmount(estimatedReceived, asset) : '—'}</strong></span></>}<span>Estimated processing <strong>{currentNetwork.eta}</strong></span></div>}
                 {method === 'Bank Transfer' && <p className="funding-processing-note"><Clock3 size={14} /> {withdrawal ? 'Bank processing time varies by destination and clearing network. This preview does not submit a transfer.' : 'Bank transfers typically take 1–3 business days. No VTA receiving account is configured.'}</p>}
                 {method === 'Cards' && <div className="funding-secure-note"><LockKeyhole size={14} /><span><strong>Secure sandbox checkout</strong><small>Test data only · never use your real card details here</small></span><span className="funding-brand-pair"><BrandLogo brand="visa" /><BrandLogo brand="mastercard" /></span></div>}
                 {error && <p className="funding-error" role="alert" aria-live="polite">{error}</p>}
@@ -470,6 +516,8 @@ export default function PortalFundsPage({
                     <ReviewRow label="Option" value={option} />
                     {method === 'Cryptocurrency' && <ReviewRow label="Asset / network" value={`${asset} · ${currentNetwork?.name} (${networkCode})`} />}
                     <ReviewRow label="Amount" value={`${amount} ${method === 'Cryptocurrency' ? asset : currency}`} />
+                    <ReviewRow label={withdrawal ? 'Amount to destination' : 'Estimated amount received'} value={formatAmount(estimatedReceived, method === 'Cryptocurrency' ? asset : currency)} />
+                    {method === 'Bank Transfer' && <ReviewRow label={withdrawal ? 'Beneficiary details' : 'Sender details'} value="Entered for preview · not retained" />}
                     <ReviewRow label={withdrawal ? 'Estimated total fee' : 'Sandbox fee'} value={`${fee.toFixed(method === 'Cryptocurrency' && (asset === 'BTC' || asset === 'ETH') ? 8 : 2)} ${method === 'Cryptocurrency' ? asset : currency}`} />
                     {withdrawal && method === 'Cryptocurrency' && <ReviewRow label="Estimated total deducted" value={`${(numericAmount + fee).toFixed(asset === 'BTC' || asset === 'ETH' ? 8 : 2)} ${asset}`} />}
                     {withdrawal && method === 'Cryptocurrency' && <ReviewRow label="Destination" value={`••••${walletAddress.slice(-6)}`} />}
@@ -485,12 +533,19 @@ export default function PortalFundsPage({
 
             {step === 'processing' && <div className="funding-status-panel" role="status" aria-live="polite"><span className="funding-spinner" /><span className="eyebrow">SANDBOX / PROCESSING</span><h3>Recording your preview request</h3><p>A demo transaction ID has been assigned. No provider has received this request and no funds are moving.</p><strong>{transactionId}</strong></div>}
 
-            {step === 'result' && <div className="funding-status-panel funding-status-panel--result" role="status" aria-live="polite"><span className={`funding-result-icon funding-result-icon--${sandboxOutcome.toLowerCase()}`}>{sandboxOutcome === 'Failed' ? <X size={24} /> : sandboxOutcome === 'Pending' ? <Clock3 size={24} /> : <Check size={24} />}</span><span className="eyebrow">SANDBOX / {sandboxOutcome.toUpperCase()}</span><h3>{sandboxOutcome === 'Completed' ? 'Preview completed' : sandboxOutcome === 'Failed' ? 'Preview marked failed' : 'Request awaiting review'}</h3><p>{sandboxOutcome === 'Completed' ? 'The sandbox request is marked complete for this preview only. No money has been received or transferred.' : sandboxOutcome === 'Failed' ? 'The sandbox request was marked failed. No payment was attempted and no funds were transferred.' : 'The sandbox request remains pending, just as it would while awaiting provider review. No funds have moved.'}</p><div className="funding-result-id"><span>TRANSACTION ID</span><strong>{transactionId}</strong><span className={`funding-status-pill funding-status-pill--${sandboxOutcome.toLowerCase()}`}>{sandboxOutcome}</span></div><div className="funding-actions funding-actions--center"><button className="funding-secondary" type="button" onClick={resetFlow}>Start another {withdrawal ? 'withdrawal' : 'deposit'}</button><button className="funding-primary" type="button" onClick={() => { const found = transactions.find((item) => item.id === transactionId); if (found) setModalTransaction(found); else setStep('method'); }}>View transaction <ReceiptText size={15} /></button></div></div>}
+            {step === 'result' && <div className="funding-status-panel funding-status-panel--result" role="status" aria-live="polite">
+              <span className={`funding-result-icon funding-result-icon--${resultStatus.toLowerCase()}`}>{resultStatus === 'Completed' ? <Check size={24} /> : resultStatus === 'Failed' ? <X size={24} /> : <Clock3 size={24} />}</span>
+              <span className="eyebrow">SANDBOX / {resultStatus.toUpperCase()}</span>
+              <h3>{resultStatus === 'Completed' ? 'Preview completed' : resultStatus === 'Failed' ? 'Preview marked failed' : resultStatus === 'Processing' ? 'Request processing' : 'Request awaiting review'}</h3>
+              <p>{resultStatus === 'Completed' ? 'The sandbox request is marked complete for this preview only. No money has been received or transferred.' : resultStatus === 'Failed' ? 'The sandbox request was marked failed. No payment was attempted and no funds were transferred.' : resultStatus === 'Processing' ? 'The sandbox request is marked as processing. No provider has received the request and no funds have moved.' : 'The sandbox request remains pending, just as it would while awaiting provider review. No funds have moved.'}</p>
+              <div className="funding-result-id"><span>TRANSACTION ID</span><strong>{transactionId}</strong><span className={`funding-status-pill funding-status-pill--${resultStatus.toLowerCase()}`}>{resultStatus}</span></div>
+              <div className="funding-actions funding-actions--center"><button className="funding-secondary" type="button" onClick={resetFlow}>Start another {withdrawal ? 'withdrawal' : 'deposit'}</button><button className="funding-primary" type="button" onClick={() => { const found = transactions.find((item) => item.id === transactionId); if (found) setModalTransaction(found); else setStep('method'); }}>View transaction <ReceiptText size={15} /></button></div>
+            </div>}
           </section>
         </>
       )}
 
-      {modalTransaction && <TransactionDialog transaction={modalTransaction} onClose={() => setModalTransaction(null)} onUpdate={(status) => { onUpdateTransaction(modalTransaction.id, status); setModalTransaction({ ...modalTransaction, status }); }} />}
+      {modalTransaction && <TransactionDialog transaction={modalTransaction} onClose={() => setModalTransaction(null)} onUpdate={(status) => { updateTransactionStatus(modalTransaction.id, status); setModalTransaction({ ...modalTransaction, status }); }} />}
     </div>
   );
 }
