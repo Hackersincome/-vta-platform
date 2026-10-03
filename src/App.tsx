@@ -15,7 +15,17 @@ import { browserMarketDataProvider, instrumentRegistry, type AssetClass, type Ba
 import { TradingTerminalExperience } from './TradingTerminal';
 
 type IconItem = { label: string; to: string; icon: LucideIcon; note?: string };
-type ProductCard = { title: string; text: string; icon: LucideIcon; to: string; flag: string };
+type ProductCard = { title: string; text: string; icon: LucideIcon; to: string; flag: string; visual: 'terminal' | 'mt4' | 'mt5' | 'momentum'; visualAlt: string; summary: string };
+
+const DEMO_PREVIEW_SESSION_KEY = 'vta-demo-preview-session';
+function hasDemoPreviewSession() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.sessionStorage.getItem(DEMO_PREVIEW_SESSION_KEY) === 'active';
+  } catch {
+    return false;
+  }
+}
 
 const publicNav = [
   { label: 'Markets', to: '/markets' },
@@ -28,10 +38,10 @@ const publicNavGroups = [
 ];
 
 const products: ProductCard[] = [
-  { title: 'Web Terminal', text: 'A composed workspace for market context, order architecture and account access.', icon: TerminalSquare, to: '/web-terminal', flag: 'NO LIVE CONNECTION' },
-  { title: 'MetaTrader 4', text: 'Prepared platform architecture for established workflow continuity.', icon: LineChart, to: '/mt4', flag: 'INTEGRATION PREPARED' },
-  { title: 'MetaTrader 5', text: 'A multi-asset platform experience with an integration-ready VTA layer.', icon: BarChart3, to: '/mt5', flag: 'INTEGRATION PREPARED' },
-  { title: 'Momentum Booster', text: 'Advanced V1 source integration with transparent runtime states.', icon: Bot, to: '/robots/momentum-booster', flag: 'INACTIVE' },
+  { title: 'Web Terminal', text: 'A composed workspace for market context, order architecture and account access.', icon: TerminalSquare, to: '/web-terminal', flag: 'NO LIVE CONNECTION', visual: 'terminal', visualAlt: 'VTA Web Terminal identity', summary: 'Market workspace' },
+  { title: 'MetaTrader 4', text: 'Prepared platform architecture for established workflow continuity.', icon: LineChart, to: '/mt4', flag: 'INTEGRATION PREPARED', visual: 'mt4', visualAlt: 'Official MetaTrader 4 logo', summary: 'Classic workflow' },
+  { title: 'MetaTrader 5', text: 'A multi-asset platform experience with an integration-ready VTA layer.', icon: BarChart3, to: '/mt5', flag: 'INTEGRATION PREPARED', visual: 'mt5', visualAlt: 'Official MetaTrader 5 logo', summary: 'Multi-asset platform' },
+  { title: 'Momentum Booster', text: 'Advanced V1 source integration with transparent runtime states.', icon: Bot, to: '/robots/momentum-booster', flag: 'INACTIVE', visual: 'momentum', visualAlt: 'Momentum Booster product artwork', summary: 'Automation · Advanced V1' },
 ];
 
 const ecosystem = [
@@ -148,8 +158,8 @@ function usePageMeta() {
   }, [location.pathname]);
 }
 
-function Brand({ compact = false }: { compact?: boolean }) {
-  return <Link className={`brand ${compact ? 'brand--compact' : ''}`} to="/" aria-label="VTA home">
+function Brand({ compact = false, to = '/' }: { compact?: boolean; to?: string }) {
+  return <Link className={`brand ${compact ? 'brand--compact' : ''}`} to={to} aria-label={to === '/portal' ? 'VTA Client Dashboard' : 'VTA home'}>
     <img src="/logo-mark.svg" width="36" height="36" alt="" />
     <span><strong>VTA</strong><em>VECTOR TRADING ALLIANCE</em></span>
   </Link>;
@@ -257,7 +267,7 @@ function MarketsPage() {
 }
 
 function PlatformsPage() {
-  return <PublicShell><PageIntro eyebrow="VTA ECOSYSTEM" title="Platforms with a shared point of view." text="Each VTA environment follows one design language while remaining truthful about connection and platform availability." /><section className="section shell platform-stack">{products.map(({ title, text, icon: Icon, to, flag }, index) => <article className="platform-row" key={title}><div className="platform-index">0{index + 1}</div><div className="icon-tile"><Icon /></div><div><span className="mono">{flag}</span><h2>{title}</h2><p>{text}</p></div><ArrowLink to={to}>Explore</ArrowLink></article>)}</section><section className="section section--soft"><div className="shell split-panel"><div><span className="eyebrow">ONE ACCOUNT LAYER</span><h2>Connection is explicit.</h2><p>VTA will never infer a broker, wallet, or account connection. Account access, platform linking and funding actions remain visibly unconnected until a verified integration is present.</p></div><div className="state-stack"><Status>ACCOUNT NOT CONNECTED</Status><Status>PLATFORM NOT LINKED</Status><Status>WALLET UNAVAILABLE</Status></div></div></section></PublicShell>;
+  return <PublicShell><PageIntro eyebrow="VTA ECOSYSTEM" title="Platforms with a shared point of view." text="Each VTA environment follows one design language while remaining truthful about connection and platform availability." /><section className="section shell platform-ecosystem" aria-label="VTA platforms">{products.map(({ title, to, flag, visual, visualAlt, summary }, index) => <Link className={`platform-card platform-card--${visual}`} key={title} to={to}><div className="platform-card-meta"><span className="platform-index">0{index + 1}</span><Status>{flag}</Status></div><div className={`platform-plaque platform-plaque--${visual}`}>{visual === 'terminal' ? <div className="platform-terminal-identity"><img src="/logo-mark.svg" alt="" aria-hidden="true"/><span>VTA<small>WEB TERMINAL</small></span></div> : <img src={visual === 'mt4' ? '/assets/branding/metatrader4-official.png' : visual === 'mt5' ? '/assets/branding/metatrader5.svg' : '/assets/branding/momentum-booster-robot.png'} alt={visualAlt} />}</div><div className="platform-card-copy"><h2>{title}</h2><p>{summary}</p><ArrowRight size={17} aria-hidden="true"/></div></Link>)}</section><section className="section section--soft"><div className="shell split-panel"><div><span className="eyebrow">ONE ACCOUNT LAYER</span><h2>Connection is explicit.</h2><p>VTA will never infer a broker, wallet, or account connection. Account access, platform linking and funding actions remain visibly unconnected until a verified integration is present.</p></div><div className="state-stack"><Status>ACCOUNT NOT CONNECTED</Status><Status>PLATFORM NOT LINKED</Status><Status>WALLET UNAVAILABLE</Status></div></div></section></PublicShell>;
 }
 
 function TerminalChart({ bars, timeframe, symbol }: { bars: Bar[]; timeframe: string; symbol: string }) {
@@ -339,16 +349,85 @@ function ContactPage() {
   return <PublicShell><PageIntro eyebrow="CONTACT VTA" title="Start with the right conversation." text="Use this form to prepare a product enquiry. Message delivery is not configured in this initial environment." /><section className="section shell contact-grid"><div><span className="eyebrow">PRODUCT & ACCESS</span><h2>Designed for a measured next step.</h2><p>VTA is rebuilding its product foundation. A live client support channel, operating desk and account onboarding are not connected here.</p><div className="contact-points"><div><MessageSquare/><span><b>General information</b><em>Response channel unavailable</em></span></div><div><ShieldCheck/><span><b>Account access</b><em>Requires approved identity integration</em></span></div><div><Bot/><span><b>Momentum Booster</b><em>Awaiting original robot file</em></span></div></div></div><form className="contact-form" onSubmit={handleSubmit}><label>Full name<input required name="name" autoComplete="name" /></label><label>Email address<input required type="email" name="email" autoComplete="email" /></label><label>Subject<select required name="subject" defaultValue=""><option value="" disabled>Select topic</option><option>Platform architecture</option><option>Client access</option><option>Momentum Booster</option><option>General information</option></select></label><label>Message<textarea required name="message" rows={5}/></label><button className="button" type="submit">Prepare enquiry <ArrowRight size={17}/></button>{submitted && <p className="form-note"><Check size={16}/> This enquiry is not sent because a VTA support channel is not connected.</p>}</form></section></PublicShell>;
 }
 
-function AuthPage({ register = false }: { register?: boolean }) {
-  const title = register ? 'Access begins with verified identity.' : 'Client access is intentionally protected.';
-  const description = register ? 'Registration will become available through an approved VTA account and identity workflow.' : 'Use a genuine application identity flow when it is configured. No sample client credentials exist.';
-  return <PublicShell><section className="auth-page shell"><div className="auth-copy"><span className="eyebrow">{register ? 'CLIENT REGISTRATION' : 'CLIENT LOGIN'}</span><h1>{title}</h1><p>{description}</p><ul className="feature-list"><li><Check/> Server-side session architecture</li><li><Check/> Secure, HttpOnly cookie policy</li><li><Check/> No seeded account or administrator access</li></ul><Link className="text-link" to="/faq">Read access FAQ <ArrowRight size={15}/></Link></div><div className="auth-card"><Status>IDENTITY REQUIRED</Status><h2>{register ? 'Registration unavailable' : 'Sign in when identity is configured'}</h2><p>{register ? 'No onboarding workflow or customer record has been connected. VTA will not create a fictional application account.' : 'A verified VTA identity flow needs an explicitly configured public origin and provider callback.'}</p>{register ? <button className="button button--block" disabled>Create account unavailable <LockKeyhole size={16}/></button> : <a className="button button--block" href="/auth/login">Continue with VTA identity <ArrowRight size={16}/></a>}<div className="auth-divider"><span>or</span></div><Link className="button button--ghost button--block" to={register ? '/login' : '/register'}>{register ? 'Return to client login' : 'Explore registration architecture'}</Link><p className="auth-foot">No passwords, balances, account IDs or access roles are supplied in the frontend.</p></div></section></PublicShell>;
+function AuthPage({ register = false, onDemoSignIn }: { register?: boolean; onDemoSignIn: () => void }) {
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+
+  function handleSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    const formData = new FormData(event.currentTarget);
+    const username = String(formData.get('username') ?? '');
+    const password = String(formData.get('password') ?? '');
+    if (username !== 'admin' || password !== 'admin1234') {
+      setError('Those sign-in details could not be verified. Check your entries and try again.');
+      return;
+    }
+    onDemoSignIn();
+    navigate('/portal', { replace: true });
+  }
+
+  function handleRegistration(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    const formData = new FormData(event.currentTarget);
+    const dateOfBirth = formData.get('dateOfBirth');
+    const password = String(formData.get('password') ?? '');
+    const confirmation = String(formData.get('confirmPassword') ?? '');
+    if (typeof dateOfBirth === 'string' && dateOfBirth > new Date().toISOString().slice(0, 10)) {
+      setError('Date of birth must be in the past.');
+      return;
+    }
+    if (password !== confirmation) {
+      setError('The passwords do not match. Please confirm your password again.');
+      return;
+    }
+    setRegistrationComplete(true);
+  }
+
+  return <PublicShell><section className={`auth-page shell${register ? ' auth-page--register' : ''}`}><div className="auth-copy"><span className="eyebrow">{register ? 'CLIENT REGISTRATION' : 'CLIENT LOGIN'}</span><h1>{register ? 'A considered start to your VTA experience.' : 'Welcome back to your VTA client area.'}</h1><p>{register ? 'Complete the preview form to review the onboarding experience. No account or identity record will be created here.' : 'Use the isolated preview sign-in to explore the client area. Production identity remains a separate, protected flow.'}</p><ul className="feature-list"><li><Check/> Production identity remains server-side</li><li><Check/> Demo session is isolated to this browser tab</li><li><Check/> No real accounts or financial activity</li></ul><Link className="text-link" to="/faq">Read access FAQ <ArrowRight size={15}/></Link></div><div className={`auth-card${register ? ' auth-card--register' : ''}`}>
+    {register ? <>
+      <Status tone="amber">PREVIEW REGISTRATION</Status>
+      {registrationComplete ? <div className="registration-confirmation" role="status"><span className="registration-confirmation-mark"><Check size={22}/></span><h2>Preview form complete</h2><p>Your information was validated in this browser only. No production account was created, no details were saved or sent, and no confirmation email was generated.</p><div className="auth-preview-note"><strong>Production registration is not connected.</strong><span>Account creation requires VTA&apos;s configured identity and backend services.</span></div><Link className="button button--block" to="/login">Return to sign in <ArrowRight size={16}/></Link></div> : <>
+        <h2>Create a client profile</h2><p className="auth-form-intro">Preview only · Complete each field to review the registration experience.</p>
+        <form className="auth-form" onSubmit={handleRegistration}>
+          <div className="registration-grid">
+            <label>First name<input name="firstName" autoComplete="given-name" required /></label>
+            <label>Last name<input name="lastName" autoComplete="family-name" required /></label>
+            <label>Email address<input name="email" type="email" autoComplete="email" required /></label>
+            <label>Date of birth<input name="dateOfBirth" type="date" autoComplete="bday" required /></label>
+            <label>Phone<input name="phone" type="tel" autoComplete="tel" required /></label>
+            <label>Country<select name="country" autoComplete="country-name" defaultValue="" required><option value="" disabled>Select country</option><option>Australia</option><option>Canada</option><option>France</option><option>Germany</option><option>India</option><option>Singapore</option><option>United Kingdom</option><option>United States</option><option>Other</option></select></label>
+            <label className="registration-field-wide">Address<input name="address" autoComplete="street-address" required /></label>
+            <label>Username<input name="username" autoComplete="username" minLength={3} required /></label>
+            <label>Password<input name="password" type="password" autoComplete="new-password" minLength={8} required /></label>
+            <label className="registration-field-wide">Confirm password<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required /></label>
+          </div>
+          <fieldset className="registration-consents"><legend>Required acknowledgements</legend><label><input name="terms" type="checkbox" required /><span>I agree to the Terms &amp; Conditions.</span></label><label><input name="privacy" type="checkbox" required /><span>I acknowledge the Privacy Policy.</span></label><label><input name="riskDisclosure" type="checkbox" required /><span>I have read the Risk Disclosure.</span></label></fieldset>
+          {error && <p className="auth-error" role="alert">{error}</p>}
+          <button className="button button--block" type="submit">Review registration <ArrowRight size={16}/></button>
+        </form><p className="auth-foot">Preview mode validates this form locally and does not transmit or retain your information.</p>
+      </>}
+    </> : <>
+      <Status tone="amber">DEMO / PREVIEW ACCESS</Status><h2>Sign in to your account</h2><p className="auth-form-intro">Explore the client dashboard with an isolated frontend-only demo session.</p>
+      <form className="auth-form" onSubmit={handleSignIn} noValidate>
+        <label>Username<input name="username" autoComplete="username" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>
+        <label>Password<input name="password" type="password" autoComplete="current-password" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>
+        {error && <p id="sign-in-error" className="auth-error" role="alert">{error}</p>}
+        <button className="button button--block" type="submit">Sign in <ArrowRight size={16}/></button>
+      </form>
+      <div className="auth-preview-note"><strong>Preview session only</strong><span>This does not authenticate a production identity or enable account, trading, or funding actions.</span></div>
+      <div className="auth-divider"><span>Production access</span></div><a className="button button--ghost button--block" href="/auth/login">Continue with configured identity <ArrowRight size={16}/></a>
+      <Link className="auth-secondary-link" to="/register">New to VTA? Preview registration</Link><p className="auth-foot">Real client access continues through the separately configured identity provider.</p>
+    </>}
+  </div></section></PublicShell>;
 }
 
-function PortalRoute() {
+function PortalRoute({ isDemoSession, onDemoSignOut }: { isDemoSession: boolean; onDemoSignOut: () => void }) {
   const location = useLocation();
   const known = portalNav.some((item) => item.to === location.pathname) || location.pathname === '/portal/robot/subscription';
-  return known ? <PortalPage /> : <NotFound />;
+  return known ? <PortalPage isDemoSession={isDemoSession} onDemoSignOut={onDemoSignOut} /> : <NotFound />;
 }
 
 function AdminRoute() {
@@ -361,16 +440,16 @@ function WorkspaceNavigation({ sections, onNavigate, label }: { sections: Naviga
   return <nav aria-label={label}>{sections.map((section) => <div className="sidebar-nav-section" key={section.label}><span className="sidebar-nav-label">{section.label}</span>{section.items.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} end={to === '/portal' || to === '/portal/accounts/new' || to === '/admin'} onClick={onNavigate}><Icon size={17}/><span>{label}</span></NavLink>)}</div>)}</nav>;
 }
 
-function PortalPage() {
+function PortalPage({ isDemoSession, onDemoSignOut }: { isDemoSession: boolean; onDemoSignOut: () => void }) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const active = portalNav.find((item) => item.to === location.pathname)
     || (location.pathname.startsWith('/portal/robot/') ? portalNav.find((item) => item.to === '/portal/robot') : undefined)
     || portalNav[0];
-  return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status>NOT CONNECTED</Status><span>Identity required</span></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
+  return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact to="/portal"/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status tone={isDemoSession ? 'amber' : 'neutral'}>{isDemoSession ? 'DEMO / PREVIEW' : 'NOT CONNECTED'}</Status><span>{isDemoSession ? 'Frontend-only preview session' : 'Identity required'}</span></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open} isDemoSession={isDemoSession} onDemoSignOut={onDemoSignOut}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
 }
 
-function AppTopbar({ title, onMenu, kind, navigationOpen }: { title: string; onMenu: () => void; kind: 'portal' | 'admin'; navigationOpen: boolean }) {
+function AppTopbar({ title, onMenu, kind, navigationOpen, isDemoSession = false, onDemoSignOut }: { title: string; onMenu: () => void; kind: 'portal' | 'admin'; navigationOpen: boolean; isDemoSession?: boolean; onDemoSignOut?: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
   const dashboardTo = kind === 'portal' ? '/portal' : '/admin';
@@ -388,7 +467,7 @@ function AppTopbar({ title, onMenu, kind, navigationOpen }: { title: string; onM
       <nav className="workspace-breadcrumbs" aria-label="Breadcrumb"><Link to="/"><Home size={13} aria-hidden="true"/>VTA Home</Link><ChevronRight size={13} aria-hidden="true"/><Link to={dashboardTo}>{dashboardLabel}</Link><ChevronRight size={13} aria-hidden="true"/><span aria-current="page">{title}</span></nav>
       <span className="mono">{kind === 'portal' ? 'CLIENT PORTAL' : 'VTA OPERATIONS'}</span><h1>{title}</h1>
     </div>
-    <div className="topbar-actions"><button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div></div>
+    <div className="topbar-actions">{kind === 'portal' && <Link className="portal-home-link" to="/" aria-label="Return to VTA public homepage"><Home size={15}/><span>VTA Home</span></Link>}<button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' && isDemoSession ? 'DEMO / PREVIEW session' : kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div>{kind === 'portal' && isDemoSession && onDemoSignOut && <button className="demo-session-exit" type="button" onClick={onDemoSignOut}>Exit preview</button>}</div>
   </header>;
 }
 
@@ -575,6 +654,25 @@ function NotFound() { return <PublicShell><section className="not-found shell"><
 
 export function App() {
   usePageMeta();
+  const [isDemoSession, setIsDemoSession] = useState(hasDemoPreviewSession);
+  const navigate = useNavigate();
+  const startDemoSession = () => {
+    try {
+      window.sessionStorage.setItem(DEMO_PREVIEW_SESSION_KEY, 'active');
+    } catch {
+      // The in-memory preview session still works when session storage is unavailable.
+    }
+    setIsDemoSession(true);
+  };
+  const endDemoSession = () => {
+    try {
+      window.sessionStorage.removeItem(DEMO_PREVIEW_SESSION_KEY);
+    } catch {
+      // Keep the demo-only session state in memory if storage is unavailable.
+    }
+    setIsDemoSession(false);
+    navigate('/login', { replace: true });
+  };
   return <Routes>
     <Route path="/" element={<PublicShell><HomePage /></PublicShell>} />
     <Route path="/markets" element={<MarketsPage />} />
@@ -589,10 +687,10 @@ export function App() {
     <Route path="/about" element={<AboutPage />} />
     <Route path="/faq" element={<FaqPage />} />
     <Route path="/contact" element={<ContactPage />} />
-    <Route path="/login" element={<AuthPage />} />
-    <Route path="/register" element={<AuthPage register />} />
+    <Route path="/login" element={<AuthPage onDemoSignIn={startDemoSession} />} />
+    <Route path="/register" element={<AuthPage register onDemoSignIn={startDemoSession} />} />
     <Route path="/demo" element={<DemoRoute />} />
-    <Route path="/portal/*" element={<PortalRoute />} />
+    <Route path="/portal/*" element={<PortalRoute isDemoSession={isDemoSession} onDemoSignOut={endDemoSession} />} />
     <Route path="/admin/*" element={<AdminRoute />} />
     <Route path="*" element={<NotFound />} />
   </Routes>;
