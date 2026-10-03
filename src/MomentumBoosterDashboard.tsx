@@ -150,7 +150,7 @@ export default function MomentumBoosterDashboard() {
 
   return <section className="mb-dashboard" aria-label="Momentum Booster automated trading dashboard">
     <header className="mb-command-hero">
-      <div className="mb-hero-art"><img src="/assets/branding/momentum-booster-robot.png" alt="Momentum Booster white and gold robot artwork" /><div className="mb-art-wash" /><span className="mb-art-caption">VTA AUTOMATION<br /><b>ADVANCED V1</b></span><span className="mb-art-index">01 / EA</span></div>
+      <div className="mb-hero-art"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/robot_command_center.png-zwJgozIjh6ySElhoKEMAEw0kqDcH8w.webp" alt="White and gold Momentum Booster robot in a blue-lit trading command center" /><div className="mb-art-wash" /><span className="mb-art-caption">VTA AUTOMATION<br /><b>ADVANCED V1</b></span><span className="mb-art-index">01 / EA</span></div>
       <div className="mb-hero-panel">
         <div className="mb-hero-topline"><span className="mb-kicker">AUTOMATED TRADING / MT5 EXPERT ADVISOR</span><RobotStatus label="NOT CONFIGURED" /></div>
         <div className="mb-title-row"><div><h2>Momentum Booster <span>Advanced Edition</span></h2><p>Risk-first automation through a measured multi-timeframe decision path.</p></div><span className="mb-edition">V1.00</span></div>

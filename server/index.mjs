@@ -22,7 +22,7 @@ app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    "img-src 'self' data:",
+    "img-src 'self' data: https://hebbkx1anhila5yf.public.blob.vercel-storage.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     isProduction ? "script-src 'self'" : "script-src 'self' 'unsafe-inline'",
