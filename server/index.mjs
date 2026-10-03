@@ -113,7 +113,7 @@ const portalRoutePaths = new Set([
 const adminRoutePaths = new Set([
   '/admin', '/admin/clients', '/admin/kyc', '/admin/accounts', '/admin/wallets', '/admin/deposits', '/admin/withdrawals', '/admin/transactions', '/admin/orders', '/admin/positions', '/admin/markets', '/admin/instruments', '/admin/pricing', '/admin/risk', '/admin/robot', '/admin/subscriptions', '/admin/payments', '/admin/reports', '/admin/support', '/admin/notifications', '/admin/employees', '/admin/roles', '/admin/audit', '/admin/settings',
 ]);
-const publicSitemapPaths = ['/', '/markets', '/platforms', '/web-terminal', '/mt4', '/mt5', '/robots/momentum-booster', '/news', '/calendar', '/analysis', '/about', '/faq', '/contact'];
+const publicSitemapPaths = ['/', '/markets', '/platforms', '/web-terminal', '/robots/momentum-booster', '/news', '/calendar', '/analysis', '/about', '/faq', '/contact'];
 function isKnownPrivateRoute(pathname) {
   return portalRoutePaths.has(pathname) || adminRoutePaths.has(pathname) || /^\/admin\/clients\/[^/]+$/.test(pathname);
 }
