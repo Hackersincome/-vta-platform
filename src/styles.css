@@ -1324,9 +1324,7 @@ td { padding-block: 16px; }
 .platform-card-meta .status { text-align: right; font-size: 8px; }
 .platform-plaque { min-width: 0; min-height: 190px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(187,214,204,.14); border-radius: 11px; background: radial-gradient(ellipse at 50% 44%, rgba(122,167,155,.12), transparent 63%), linear-gradient(145deg, rgba(223,237,229,.045), rgba(9,22,27,.44)); box-shadow: inset 0 1px rgba(255,255,255,.08), 0 16px 32px rgba(0,0,0,.2); }
 .platform-plaque img { display: block; max-width: min(78%, 300px); max-height: 150px; object-fit: contain; }
-.platform-plaque--mt4 { background: linear-gradient(145deg, #f2f3ef, #e1e6df); border-color: rgba(255,255,255,.42); }
-.platform-plaque--mt4 img { max-width: min(90%, 300px); max-height: 78px; }
-.platform-plaque--mt5 img { width: 92px; height: 88px; max-width: 50%; max-height: 130px; }
+
 .platform-plaque--momentum img { width: min(64%, 150px); max-height: 174px; object-fit: contain; }
 .platform-terminal-identity { display: flex; align-items: center; gap: 14px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: clamp(20px, 3vw, 29px); font-weight: 700; letter-spacing: .08em; }
 .platform-terminal-identity img { width: 76px; height: 76px; max-width: none; max-height: none; }
@@ -1440,8 +1438,6 @@ td { padding-block: 16px; }
   .platform-card-meta { align-items: start; }
   .platform-card-meta .status { max-width: 94px; white-space: normal; line-height: 1.35; }
   .platform-plaque { min-height: 145px; border-radius: 9px; }
-  .platform-plaque--mt4 img { max-width: 91%; max-height: 58px; }
-  .platform-plaque--mt5 img { width: 74px; height: 74px; }
   .platform-plaque--momentum img { width: min(72%, 118px); max-height: 132px; }
   .platform-terminal-identity { gap: 8px; font-size: 20px; }
   .platform-terminal-identity img { width: 50px; height: 50px; }
@@ -1629,7 +1625,8 @@ td { padding-block: 16px; }
   .flagship-section--compact .flagship-product-copy > p { font-size: 13px; }
   .platform-thread { padding-block: 68px; }
   .platform-thread-copy h2 { font-size: 42px; }
-  .platform-marks { min-height: 140px; gap: 31px; }
+  .platform-marks { min-height: 140px; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 18px; }
+  .platform-marks-divider { display: none; }
   .platform-marks > a { gap: 8px; font-size: 11px; }
   .platform-marks > a img { width: 43px; height: 43px; }
   .platform-marks > a:first-child img { width: 48px; height: 48px; }
@@ -1660,9 +1657,6 @@ td { padding-block: 16px; }
 .platform-plaque { position: relative; min-height: 260px; border: 1px solid rgba(187,214,204,.14); border-radius: 3px; background: radial-gradient(ellipse at 50% 48%, rgba(124,157,146,.11), transparent 63%), linear-gradient(145deg, rgba(223,237,229,.055), rgba(9,22,27,.52)); box-shadow: inset 0 1px rgba(255,255,255,.075), inset 0 -34px 60px rgba(0,0,0,.11), 0 20px 38px rgba(0,0,0,.17); }
 .platform-plaque::after { position: absolute; inset: 0; border: 1px solid rgba(255,255,255,.025); content: ''; pointer-events: none; }
 .platform-plaque img { display: block; max-width: min(82%, 370px); max-height: 190px; object-fit: contain; }
-.platform-plaque--mt4 { background: radial-gradient(ellipse at 50% 49%, #fff 0, #f7f8f4 63%, #e7ebe6 100%); border-color: rgba(255,255,255,.45); box-shadow: inset 0 1px rgba(255,255,255,.9), 0 20px 38px rgba(0,0,0,.24); }
-.platform-plaque--mt4 img { width: min(92%, 390px); max-width: 92%; max-height: 108px; }
-.platform-plaque--mt5 img { width: min(210px, 63%); height: 190px; max-width: 63%; max-height: 190px; }
 .platform-plaque--momentum img { width: min(250px, 67%); max-width: 67%; max-height: 247px; object-fit: contain; }
 .platform-terminal-identity { display: flex; align-items: center; justify-content: center; gap: clamp(15px, 2.2vw, 28px); color: #e6ebe5; font-family: 'Space Grotesk', sans-serif; font-size: clamp(40px, 5.6vw, 70px); font-weight: 700; letter-spacing: -.055em; }
 .platform-terminal-identity img { width: clamp(76px, 11vw, 122px); height: clamp(76px, 11vw, 122px); max-width: none; max-height: none; }
@@ -1672,23 +1666,20 @@ td { padding-block: 16px; }
 .platform-card-copy h2 { color: #eef1eb; font-size: clamp(21px, 2.35vw, 29px); letter-spacing: -.04em; }
 .platform-card-copy p { color: #a0afa7; font-size: 12px; line-height: 1.5; }
 .platform-card-copy svg { color: #c4ad75; }
-.platform-card--mt4 { animation: platform-arrive .55s .03s both; }
-.platform-card--mt5 { animation: platform-arrive .55s .10s both; }
-.platform-card--terminal { animation: platform-arrive .55s .17s both; }
-.platform-card--momentum { animation: platform-arrive .55s .24s both; }
+  .platform-card--terminal { animation: platform-arrive .55s .03s both; }
+  .platform-card--momentum { animation: platform-arrive .55s .10s both; }
+
 @keyframes platform-arrive { from { opacity: .01; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 640px) {
   .platform-ecosystem { grid-template-columns: 1fr; gap: 19px; padding-block: 28px 62px; }
   .platform-card { min-height: 430px; grid-template-rows: auto minmax(238px, 1fr) auto; gap: 16px; padding: 17px; }
   .platform-plaque { min-height: 238px; }
-  .platform-plaque--mt4 img { width: min(94%, 390px); max-width: 94%; max-height: 105px; }
-  .platform-plaque--mt5 img { width: min(220px, 65%); height: 190px; max-width: 65%; max-height: 190px; }
   .platform-plaque--momentum img { width: min(244px, 66%); max-width: 66%; max-height: 229px; }
   .platform-terminal-identity { gap: 17px; font-size: clamp(46px, 13vw, 62px); }
   .platform-terminal-identity img { width: clamp(82px, 22vw, 104px); height: clamp(82px, 22vw, 104px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .platform-card, .platform-card--mt4, .platform-card--mt5, .platform-card--terminal, .platform-card--momentum { animation: none !important; transition: none !important; }
+  .platform-card, .platform-card--terminal, .platform-card--momentum { animation: none !important; transition: none !important; }
 }
 
 :root {

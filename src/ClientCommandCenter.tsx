@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, ArrowDownRight, Bot, CircleHelp, Clock3, Globe2, ShieldCheck, TerminalSquare, WalletCards } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, ArrowDownRight, CircleHelp, Clock3, Globe2, ShieldCheck, TerminalSquare, WalletCards } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './vta-experience.css';
 
@@ -21,7 +21,7 @@ export default function ClientCommandCenter() {
           <p>Your account context, funding actions and trading tools belong in one considered workspace. Connect an approved account to see verified financial information.</p>
           <div className="client-command__hero-actions">
             <Link className="button" to="/portal/accounts">Explore accounts <ArrowRight size={16} /></Link>
-            <Link className="client-command__text-link" to="/portal/robot">Momentum Booster <ArrowUpRight size={15} /></Link>
+            <Link className="client-command__text-link" to="/portal/terminal">VTA Web Trading Terminal <ArrowUpRight size={15} /></Link>
           </div>
         </div>
         <div className="client-command__hero-coordinate" aria-hidden="true">VTA / CLIENT 01<br />GLOBAL MARKETS</div>
@@ -59,12 +59,11 @@ export default function ClientCommandCenter() {
           </div>
         </div>
         <div className="client-command__tools">
-          <span className="eyebrow">TRADING TECHNOLOGY</span>
-          <h3>Manual or automated.</h3>
-          <p>Choose the tool that fits your process. Neither connects to a broker from this preview.</p>
+          <span className="eyebrow">VTA WEB TRADING TERMINAL</span>
+          <h3>Research and trading tools.</h3>
+          <p>The terminal includes market tools and VTA’s proprietary Momentum Booster automation. No broker is connected in this preview.</p>
           <div className="client-command__tool-links">
-            <Link to="/portal/terminal"><TerminalSquare size={17} /><span><strong>Web Terminal</strong><small>Manual trading · not connected</small></span><ArrowUpRight size={14} /></Link>
-            <Link to="/portal/robot"><Bot size={17} /><span><strong>Momentum Booster</strong><small>Automated trading · demo only</small></span><ArrowUpRight size={14} /></Link>
+            <Link to="/portal/terminal"><TerminalSquare size={17} /><span><strong>VTA Web Trading Terminal</strong><small>Market workspace · Momentum Booster · preview only</small></span><ArrowUpRight size={14} /></Link>
           </div>
         </div>
       </section>

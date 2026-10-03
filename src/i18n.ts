@@ -37,7 +37,7 @@ const en = {
     clientAccess: 'Client access',
     chooseAccess: 'Choose how you would like to continue.',
     momentumLayers: '04 decision layers',
-    momentumPlatform: 'MT5 Expert Advisor',
+    momentumPlatform: 'VTA Web Trading Terminal',
     momentumIntegration: 'Source integration prepared',
   },
   auth: {

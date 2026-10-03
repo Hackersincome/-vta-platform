@@ -5,6 +5,7 @@ import { CandlestickSeries, ColorType, CrosshairMode, createChart, HistogramSeri
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts';
 import { browserMarketDataProvider, instrumentRegistry } from './terminal-data';
 import type { Bar, HistoricalBarsResult, Instrument } from './terminal-data';
+import { Link } from 'react-router-dom';
 
 type Interval = '1m' | '5m' | '15m' | '1h' | '4h' | '1d';
 type Range = '1D' | '1W' | '1M' | '3M' | 'ALL';
@@ -169,8 +170,8 @@ export function TradingTerminalExperience() {
   function toggleFullscreen() { if (document.fullscreenElement) void document.exitFullscreen(); else if (chartCard.current) void chartCard.current.requestFullscreen().catch(() => setNotice('Fullscreen is not available in this browser.')); }
   const maOptions: [Indicator, string][] = [['none', 'Indicators · off'], ['sma20', 'Simple MA · 20'], ['sma50', 'Simple MA · 50'], ['both', 'Simple MAs · 20 + 50']];
   return <section className="vta-terminal-page">
-    <header className="vta-terminal-page-heading"><div className="vta-terminal-heading-lockup"><span className="vta-terminal-symbol"><BarChart3 size={19} /></span><div><span className="vta-overline">VTA · TRADING ENVIRONMENT</span><h1>Web Terminal</h1></div></div><div className="vta-terminal-status-cluster"><span className="vta-connection-status"><i />NO BROKER CONNECTED</span><span className="vta-data-label"><Clock3 size={13} />HISTORICAL DATA ONLY</span></div></header>
-    <div className="vta-connection-banner" role="note"><ShieldAlert size={15} /><span><strong>Research workspace.</strong> Completed, source-attributed candles are available for supported crypto pairs. No live feed, broker, account balance or order execution.</span><span className="vta-preview-tag">PAPER PREVIEW ONLY</span></div>
+    <header className="vta-terminal-page-heading"><div className="vta-terminal-heading-lockup"><span className="vta-terminal-symbol"><BarChart3 size={19} /></span><div><span className="vta-overline">VTA WEB TRADING TERMINAL</span><h1>Web Terminal</h1></div></div><div className="vta-terminal-status-cluster"><span className="vta-connection-status"><i />NO BROKER CONNECTED</span><span className="vta-data-label"><Clock3 size={13} />HISTORICAL DATA ONLY</span></div></header>
+    <div className="vta-connection-banner" role="note"><ShieldAlert size={15} /><span><strong>Research workspace.</strong> VTA&apos;s proprietary Momentum Booster automation experience is part of this terminal. Completed, source-attributed candles are available for supported crypto pairs; no live feed, broker, account balance or order execution.</span><Link className="vta-preview-tag" to="/robots/momentum-booster">Explore Momentum Booster</Link><span className="vta-preview-tag">PAPER PREVIEW ONLY</span></div>
     <div className="vta-terminal-grid">
       <Watchlist selected={selected} items={watchlist} price={last?.close} choose={choose} add={add} remove={remove} />
       <div className="vta-chart-column" ref={chartCard}>
