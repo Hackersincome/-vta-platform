@@ -8,13 +8,11 @@ export type PageMeta = {
 
 const brand = 'VTA — Vector Trading Alliance';
 const publicMeta: Record<string, Omit<PageMeta, 'public' | 'status'>> = {
-  '/': { title: `${brand} | Precision for every market decision.`, description: 'VTA brings markets, terminal access, analytics, and product architecture into one composed trading ecosystem.', robots: 'index,follow' },
+  '/': { title: `${brand} | Global Markets & Trading Technology`, description: 'Explore VTA’s global markets experience and proprietary Web Trading Terminal, featuring the Momentum Booster automation experience. Editorial visuals are illustrative; no live market data or financial performance is presented.', robots: 'index,follow' },
   '/markets': { title: `Markets | ${brand}`, description: 'Explore VTA’s multi-asset market structure across Forex, Metals, Energies, Indices, Stocks, and Crypto.', robots: 'index,follow' },
-  '/platforms': { title: `Platforms | ${brand}`, description: 'Discover the VTA ecosystem: Web Terminal, MetaTrader platforms, wallet architecture, and automation products.', robots: 'index,follow' },
-  '/web-terminal': { title: `Web Terminal | ${brand}`, description: 'Preview VTA’s connected market workspace architecture with transparent no-live-data states.', robots: 'index,follow' },
-  '/mt4': { title: `MetaTrader 4 | ${brand}`, description: 'Review VTA’s prepared MT4 integration architecture and platform experience.', robots: 'index,follow' },
-  '/mt5': { title: `MetaTrader 5 | ${brand}`, description: 'Review VTA’s prepared MT5 integration architecture and platform experience.', robots: 'index,follow' },
-  '/robots/momentum-booster': { title: `Momentum Booster EA — Advanced V1 | ${brand}`, description: 'Explore the transparent product architecture for Momentum Booster EA — Advanced V1.', robots: 'index,follow' },
+  '/platforms': { title: `Platforms | ${brand}`, description: 'Discover VTA’s proprietary Web Trading Terminal and Momentum Booster automation experience.', robots: 'index,follow' },
+  '/web-terminal': { title: `VTA Web Trading Terminal | ${brand}`, description: 'Explore VTA’s proprietary Web Trading Terminal, including market research tools and the Momentum Booster automation experience. No broker, live feed or connected account.', robots: 'index,follow' },
+  '/robots/momentum-booster': { title: `Momentum Booster | ${brand}`, description: 'Explore Momentum Booster, VTA’s proprietary automation experience within the Web Trading Terminal.', robots: 'index,follow' },
   '/analysis': { title: `Market Analysis | ${brand}`, description: 'Explore VTA’s market intelligence, research, and AI analysis architecture.', robots: 'index,follow' },
   '/news': { title: `Market News | ${brand}`, description: 'VTA market news architecture with transparent editorial availability states.', robots: 'index,follow' },
   '/calendar': { title: `Economic Calendar | ${brand}`, description: 'VTA economic calendar architecture with no fabricated live event data.', robots: 'index,follow' },

@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { createServer } from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,10 +22,10 @@ app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    "img-src 'self' data:",
+    "img-src 'self' data: https://hebbkx1anhila5yf.public.blob.vercel-storage.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "script-src 'self'",
+    isProduction ? "script-src 'self'" : "script-src 'self' 'unsafe-inline'",
     "connect-src 'self' ws: wss:",
     "base-uri 'self'",
     "form-action 'self'",
@@ -112,7 +113,7 @@ const portalRoutePaths = new Set([
 const adminRoutePaths = new Set([
   '/admin', '/admin/clients', '/admin/kyc', '/admin/accounts', '/admin/wallets', '/admin/deposits', '/admin/withdrawals', '/admin/transactions', '/admin/orders', '/admin/positions', '/admin/markets', '/admin/instruments', '/admin/pricing', '/admin/risk', '/admin/robot', '/admin/subscriptions', '/admin/payments', '/admin/reports', '/admin/support', '/admin/notifications', '/admin/employees', '/admin/roles', '/admin/audit', '/admin/settings',
 ]);
-const publicSitemapPaths = ['/', '/markets', '/platforms', '/web-terminal', '/mt4', '/mt5', '/robots/momentum-booster', '/news', '/calendar', '/analysis', '/about', '/faq', '/contact'];
+const publicSitemapPaths = ['/', '/markets', '/platforms', '/web-terminal', '/robots/momentum-booster', '/news', '/calendar', '/analysis', '/about', '/faq', '/contact'];
 function isKnownPrivateRoute(pathname) {
   return portalRoutePaths.has(pathname) || adminRoutePaths.has(pathname) || /^\/admin\/clients\/[^/]+$/.test(pathname);
 }
@@ -143,26 +144,44 @@ const marketSymbolMap = new Map([
   ['BTC/USDT', 'BTCUSDT'], ['ETH/USDT', 'ETHUSDT'], ['BNB/USDT', 'BNBUSDT'], ['SOL/USDT', 'SOLUSDT'],
 ]);
 const marketIntervalMap = new Map([
-  ['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1h'], ['4H', '4h'], ['1D', '1d'], ['1W', '1w'], ['1M', '1M'],
+  ['1m', '1m'], ['3m', '3m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'],
+  ['1h', '1h'], ['2h', '2h'], ['4h', '4h'], ['1d', '1d'], ['1w', '1w'],
 ]);
 app.get('/api/market/klines', async (req, res) => {
   const symbol = typeof req.query.symbol === 'string' ? req.query.symbol : '';
-  const interval = typeof req.query.interval === 'string' ? req.query.interval : '1H';
+  const interval = typeof req.query.interval === 'string' ? req.query.interval.toLowerCase() : '1h';
   const providerSymbol = marketSymbolMap.get(symbol);
   const providerInterval = marketIntervalMap.get(interval);
-  res.setHeader('Cache-Control', 'public, max-age=60');
+  const requestedLimit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 500;
+  const limit = Number.isInteger(requestedLimit) ? Math.min(1000, Math.max(1, requestedLimit)) : 500;
+  const startTime = typeof req.query.startTime === 'string' ? Number(req.query.startTime) : undefined;
+  const endTime = typeof req.query.endTime === 'string' ? Number(req.query.endTime) : undefined;
+  res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
   if (!providerSymbol || !providerInterval) {
     return res.status(404).json({ state: 'UNAVAILABLE', bars: [], message: 'Historical data is not available for this instrument or timeframe.' });
   }
+  if ((startTime !== undefined && (!Number.isSafeInteger(startTime) || startTime < 0)) ||
+      (endTime !== undefined && (!Number.isSafeInteger(endTime) || endTime < 0)) ||
+      (startTime !== undefined && endTime !== undefined && startTime >= endTime)) {
+    return res.status(400).json({ state: 'UNAVAILABLE', bars: [], message: 'The requested historical date range is invalid.' });
+  }
   try {
-    const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${providerSymbol}&interval=${providerInterval}&limit=120`);
+    const providerUrl = new URL('https://api.binance.com/api/v3/klines');
+    providerUrl.searchParams.set('symbol', providerSymbol);
+    providerUrl.searchParams.set('interval', providerInterval);
+    providerUrl.searchParams.set('limit', String(limit));
+    if (startTime !== undefined) providerUrl.searchParams.set('startTime', String(startTime));
+    if (endTime !== undefined) providerUrl.searchParams.set('endTime', String(endTime));
+    const response = await fetch(providerUrl, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
     if (!response.ok) throw new Error(`provider_${response.status}`);
     const rows = await response.json();
-    const bars = rows.map((row) => ({ time: Math.floor(Number(row[0]) / 1000), open: Number(row[1]), high: Number(row[2]), low: Number(row[3]), close: Number(row[4]), volume: Number(row[5]) }));
-    return res.json({ state: 'HISTORICAL DATA', source: 'Binance public market data API', symbol, interval, bars });
+    const completedRows = Array.isArray(rows) ? rows.filter((row) => Number(row[6]) < Date.now()) : [];
+    const bars = completedRows.map((row) => ({ time: Math.floor(Number(row[0]) / 1000), open: Number(row[1]), high: Number(row[2]), low: Number(row[3]), close: Number(row[4]), volume: Number(row[5]) })).filter((bar) => Object.values(bar).every(Number.isFinite));
+    if (!bars.length) return res.json({ state: 'UNAVAILABLE', source: 'Binance public market data API', symbol, interval, bars: [], message: 'No completed historical candles were returned for this range.' });
+    return res.json({ state: 'HISTORICAL DATA', source: 'Binance public market data API · completed candles', symbol, interval, bars });
   } catch (error) {
     console.error('market_data_unavailable', error);
-    return res.status(502).json({ state: 'UNAVAILABLE', bars: [], message: 'Historical market data provider is unavailable.' });
+    return res.status(502).json({ state: 'UNAVAILABLE', bars: [], message: 'Historical market data provider is unavailable. Retry when the source is reachable.' });
   }
 });
 
@@ -241,13 +260,14 @@ app.get('/__preview/portal/:surface', async (req, res) => {
   res.redirect(302, `/portal/${surface}`);
 });
 
+const httpServer = createServer(app);
 let vite;
 if (!isProduction) {
-  const { createServer } = await import('vite');
-  vite = await createServer({
+  const { createServer: createViteServer } = await import('vite');
+  vite = await createViteServer({
     root,
     appType: 'custom',
-    server: { middlewareMode: true, hmr: false },
+    server: { middlewareMode: true, hmr: { server: httpServer } },
   });
   app.use(vite.middlewares);
 } else {
@@ -299,6 +319,6 @@ app.use(async (req, res) => {
   return renderPage(req, res);
 });
 
-app.listen(port, '0.0.0.0', () => {
+httpServer.listen(port, '0.0.0.0', () => {
   console.log(`VTA listening on http://0.0.0.0:${port}`);
 });

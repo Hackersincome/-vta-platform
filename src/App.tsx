@@ -2,41 +2,49 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Bot, BriefcaseBusiness,
-  CalendarDays, Check, ChevronDown, CircleDollarSign, Clock3, Command, CreditCard,
+  CalendarDays, Check, ChevronDown, CircleDollarSign, Clock3, Command, CreditCard, LogOut,
   Database, ExternalLink, FileText, Globe2, HelpCircle, Info, KeyRound, LayoutDashboard,
   LineChart, LockKeyhole, Menu, MessageSquare, Package, PanelLeft, Plus, Radar,
   Search, Settings, ShieldCheck, SlidersHorizontal, Sparkles, TerminalSquare,
-  UserRound, Users, WalletCards, X, Zap, Landmark,
+  UserRound, Users, WalletCards, X, Zap, Landmark, ArrowLeft, ChevronRight, Home,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { getPageMeta } from './meta';
 import { browserMarketDataProvider, instrumentRegistry, type AssetClass, type Bar, type Instrument } from './terminal-data';
+import { TradingTerminalExperience } from './TradingTerminal';
+import MomentumBoosterDashboard from './MomentumBoosterDashboard';
+import ClientCommandCenter from './ClientCommandCenter';
+import PortalFundsPage from './PortalFundsPage';
+import { useTranslation } from 'react-i18next';
+import { getLocaleSearchableLanguages, hasLocaleTranslations, setLocale, supportedLanguages } from './i18n';
 
 type IconItem = { label: string; to: string; icon: LucideIcon; note?: string };
-type ProductCard = { title: string; text: string; icon: LucideIcon; to: string; flag: string };
+type ProductCard = { title: string; text: string; icon: LucideIcon; to: string; flag: string; visual: 'terminal' | 'momentum'; visualAlt: string; summary: string };
+
+const DEMO_PREVIEW_SESSION_KEY = 'vta-demo-preview-session';
+function hasDemoPreviewSession() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.sessionStorage.getItem(DEMO_PREVIEW_SESSION_KEY) === 'active';
+  } catch {
+    return false;
+  }
+}
 
 const publicNav = [
   { label: 'Markets', to: '/markets' },
   { label: 'Platforms', to: '/platforms' },
-  { label: 'Analysis', to: '/analysis' },
-  { label: 'Momentum Booster', to: '/robots/momentum-booster' },
+];
+
+const publicNavGroups = [
+  { label: 'Research', items: [{ label: 'Analysis', to: '/analysis' }, { label: 'Market news', to: '/news' }, { label: 'Economic calendar', to: '/calendar' }] },
+  { label: 'Trading', items: [{ label: 'VTA Web Trading Terminal', to: '/web-terminal' }, { label: 'Momentum Booster', to: '/robots/momentum-booster' }] },
 ];
 
 const products: ProductCard[] = [
-  { title: 'Web Terminal', text: 'A composed workspace for market context, order architecture and account access.', icon: TerminalSquare, to: '/web-terminal', flag: 'NO LIVE CONNECTION' },
-  { title: 'MetaTrader 4', text: 'Prepared platform architecture for established workflow continuity.', icon: LineChart, to: '/mt4', flag: 'INTEGRATION PREPARED' },
-  { title: 'MetaTrader 5', text: 'A multi-asset platform experience with an integration-ready VTA layer.', icon: BarChart3, to: '/mt5', flag: 'INTEGRATION PREPARED' },
-  { title: 'Momentum Booster', text: 'Advanced V1 source integration with transparent runtime states.', icon: Bot, to: '/robots/momentum-booster', flag: 'INACTIVE' },
-];
-
-const ecosystem = [
-  { title: 'Markets', icon: Globe2, text: 'Cross-asset market structure with transparent data availability.' },
-  { title: 'Terminal', icon: TerminalSquare, text: 'A focused workspace designed around order and position visibility.' },
-  { title: 'Portfolio', icon: BriefcaseBusiness, text: 'Account, wallet and funding architecture without fictional balances.' },
-  { title: 'Intelligence', icon: Sparkles, text: 'Research and AI modules that disclose when analysis is unavailable.' },
-  { title: 'Automation', icon: Bot, text: 'Robot status and configuration surfaces built for legitimate linkage.' },
-  { title: 'Operations', icon: ShieldCheck, text: 'A governed administrative layer for future operational workflows.' },
+  { title: 'VTA Web Trading Terminal', text: 'VTA’s proprietary browser-based trading workspace for market context and account access.', icon: TerminalSquare, to: '/web-terminal', flag: 'NO LIVE CONNECTION', visual: 'terminal', visualAlt: 'VTA Web Trading Terminal identity', summary: 'VTA’s proprietary trading workspace' },
+  { title: 'Momentum Booster', text: 'VTA’s proprietary automation experience within the Web Trading Terminal.', icon: Bot, to: '/robots/momentum-booster', flag: 'INACTIVE', visual: 'momentum', visualAlt: 'Momentum Booster product artwork', summary: 'Part of the VTA Web Trading Terminal' },
 ];
 
 const marketFamilies = [
@@ -49,27 +57,30 @@ const marketFamilies = [
 ];
 
 const portalNav: IconItem[] = [
-  { label: 'Overview', to: '/portal', icon: LayoutDashboard },
-  { label: 'Accounts', to: '/portal/accounts', icon: BriefcaseBusiness },
-  { label: 'Create account', to: '/portal/accounts/new', icon: Plus },
-  { label: 'Wallet', to: '/portal/wallet', icon: WalletCards },
-  { label: 'Deposit', to: '/portal/deposit', icon: Plus },
-  { label: 'Withdraw', to: '/portal/withdraw', icon: ArrowUpRight },
-  { label: 'Transactions', to: '/portal/transactions', icon: Clock3 },
-  { label: 'Markets', to: '/portal/markets', icon: Globe2 },
-  { label: 'Terminal', to: '/portal/terminal', icon: TerminalSquare },
+  { label: 'Dashboard', to: '/portal', icon: LayoutDashboard },
+  { label: 'VTA Web Trading Terminal', to: '/portal/terminal', icon: TerminalSquare },
   { label: 'Positions', to: '/portal/positions', icon: Activity },
   { label: 'Orders', to: '/portal/orders', icon: FileText },
   { label: 'History', to: '/portal/history', icon: CalendarDays },
   { label: 'Momentum Booster', to: '/portal/robot', icon: Bot },
-  { label: 'Alerts', to: '/portal/alerts', icon: Bell },
-  { label: 'News', to: '/portal/news', icon: MessageSquare },
-  { label: 'Calendar', to: '/portal/calendar', icon: CalendarDays },
-  { label: 'Support', to: '/portal/support', icon: HelpCircle },
+  { label: 'Accounts', to: '/portal/accounts', icon: BriefcaseBusiness },
+  { label: 'Wallet', to: '/portal/wallet', icon: WalletCards },
+  { label: 'Deposit', to: '/portal/deposit', icon: Plus },
+  { label: 'Withdraw', to: '/portal/withdraw', icon: ArrowUpRight },
+  { label: 'Transactions', to: '/portal/transactions', icon: Clock3 },
   { label: 'Profile', to: '/portal/profile', icon: UserRound },
   { label: 'KYC', to: '/portal/kyc', icon: ShieldCheck },
   { label: 'Security', to: '/portal/security', icon: KeyRound },
   { label: 'Settings', to: '/portal/settings', icon: Settings },
+  { label: 'Notifications', to: '/portal/alerts', icon: Bell },
+  { label: 'Support', to: '/portal/support', icon: HelpCircle },
+];
+
+const portalRouteExtras = [
+  { label: 'Create account', to: '/portal/accounts/new', icon: Plus },
+  { label: 'Markets', to: '/portal/markets', icon: Globe2 },
+  { label: 'News', to: '/portal/news', icon: MessageSquare },
+  { label: 'Calendar', to: '/portal/calendar', icon: CalendarDays },
 ];
 
 const adminNav: IconItem[] = [
@@ -101,22 +112,22 @@ const adminNav: IconItem[] = [
 
 type NavigationSection = { label: string; items: IconItem[] };
 const portalSections: NavigationSection[] = [
-  { label: 'WORKSPACE', items: portalNav.slice(0, 1) },
-  { label: 'ACCOUNTS', items: portalNav.slice(1, 3) },
-  { label: 'FUNDS', items: portalNav.slice(3, 7) },
-  { label: 'TRADING', items: portalNav.slice(7, 12) },
-  { label: 'AUTOMATION', items: portalNav.slice(12, 13) },
-  { label: 'INTELLIGENCE', items: portalNav.slice(13, 16) },
-  { label: 'ACCOUNT & SUPPORT', items: portalNav.slice(16) },
+  { label: 'OVERVIEW', items: portalNav.slice(0, 1) },
+  { label: 'VTA WEB TRADING TERMINAL', items: [portalNav[1], portalNav[5]] },
+  { label: 'ACCOUNT ACTIVITY', items: [portalNav[2], portalNav[3], portalNav[4]] },
+  { label: 'FUNDS', items: portalNav.slice(6, 11) },
+  { label: 'ACCOUNT', items: portalNav.slice(11, 15) },
+  { label: 'SUPPORT', items: portalNav.slice(15) },
 ];
 const adminSections: NavigationSection[] = [
   { label: 'OVERVIEW', items: adminNav.slice(0, 1) },
-  { label: 'CLIENTS & ACCOUNTS', items: adminNav.slice(1, 5) },
-  { label: 'FINANCIAL OPERATIONS', items: adminNav.slice(5, 9) },
-  { label: 'TRADING OPERATIONS', items: adminNav.slice(9, 11) },
+  { label: 'CLIENT ACCESS', items: adminNav.slice(1, 5) },
+  { label: 'FUNDING & PAYMENTS', items: adminNav.slice(5, 9) },
+  { label: 'TRADING', items: adminNav.slice(9, 11) },
   { label: 'MARKET INFRASTRUCTURE', items: adminNav.slice(11, 14) },
   { label: 'PRODUCT & RISK', items: adminNav.slice(14, 17) },
-  { label: 'GOVERNANCE', items: adminNav.slice(17) },
+  { label: 'OPERATIONS', items: adminNav.slice(17, 20) },
+  { label: 'ACCESS & AUDIT', items: adminNav.slice(20) },
 ];
 
 function usePageMeta() {
@@ -143,8 +154,8 @@ function usePageMeta() {
   }, [location.pathname]);
 }
 
-function Brand({ compact = false }: { compact?: boolean }) {
-  return <Link className={`brand ${compact ? 'brand--compact' : ''}`} to="/" aria-label="VTA home">
+function Brand({ compact = false, to = '/' }: { compact?: boolean; to?: string }) {
+  return <Link className={`brand ${compact ? 'brand--compact' : ''}`} to={to} aria-label={to === '/portal' ? 'VTA Client Dashboard' : 'VTA home'}>
     <img src="/logo-mark.svg" width="36" height="36" alt="" />
     <span><strong>VTA</strong><em>VECTOR TRADING ALLIANCE</em></span>
   </Link>;
@@ -158,46 +169,85 @@ function ArrowLink({ to, children, className = '' }: { to: string; children: Rea
   return <Link className={`arrow-link ${className}`} to={to}>{children}<ArrowRight size={16} aria-hidden="true" /></Link>;
 }
 
+function PublicNavigation({ onNavigate }: { onNavigate?: () => void }) {
+  const location = useLocation();
+  return <>
+    {publicNav.map((item) => <NavLink key={item.to} to={item.to} onClick={onNavigate}>{item.label}</NavLink>)}
+    {publicNavGroups.map((group) => {
+      const isActive = group.items.some((item) => item.to === location.pathname);
+      return <details className={`public-nav-group ${isActive ? 'is-active' : ''}`} key={group.label} onClick={(event) => { if ((event.target as HTMLElement).closest('a')) { event.currentTarget.open = false; onNavigate?.(); } }}>
+        <summary>{group.label}<ChevronDown size={14} aria-hidden="true" /></summary>
+        <div className="public-nav-menu">
+          {group.items.map((item) => <NavLink key={item.to} to={item.to} onClick={onNavigate}>{item.label}</NavLink>)}
+        </div>
+      </details>;
+    })}
+    <NavLink to="/about" onClick={onNavigate}>About</NavLink>
+  </>;
+}
+
 function PublicHeader() {
   const [open, setOpen] = useState(false);
-  return <header className="site-header">
+  return <header className="site-header" onKeyDown={(event) => { if (event.key === 'Escape') { setOpen(false); event.currentTarget.querySelectorAll<HTMLDetailsElement>('.public-nav-group[open]').forEach((menu) => { menu.open = false; }); } }}>
     <div className="shell header-inner">
       <Brand />
-      <nav className="desktop-nav" aria-label="Primary navigation">
-        {publicNav.map((item) => <NavLink key={item.to} to={item.to}>{item.label}</NavLink>)}
-        <NavLink to="/about">About</NavLink>
-      </nav>
+      <nav className="desktop-nav" aria-label="Primary navigation"><PublicNavigation /></nav>
       <div className="header-actions">
-        <Link className="text-link" to="/login">Client login</Link>
+        <Link className="text-link" to="/login">Client Area</Link>
         <Link className="button button--small" to="/register">Open portal <ArrowUpRight size={15} /></Link>
       </div>
-      <button className="menu-button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="mobile-navigation" aria-label="Toggle navigation">
+      <button className="menu-button" type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? 'Close navigation' : 'Open navigation'}>
         {open ? <X /> : <Menu />}
       </button>
     </div>
     <nav id="mobile-navigation" className={`mobile-nav ${open ? 'mobile-nav--open' : ''}`} aria-label="Mobile navigation">
-      {publicNav.map((item) => <NavLink key={item.to} to={item.to} onClick={() => setOpen(false)}>{item.label}</NavLink>)}
-      <NavLink to="/about" onClick={() => setOpen(false)}>About</NavLink>
-      <NavLink to="/login" onClick={() => setOpen(false)}>Client login</NavLink>
+      <PublicNavigation onNavigate={() => setOpen(false)} />
+      <NavLink to="/login" onClick={() => setOpen(false)}>Client Area</NavLink>
       <NavLink className="button" to="/register" onClick={() => setOpen(false)}>Open portal <ArrowUpRight size={15} /></NavLink>
     </nav>
   </header>;
 }
 
+function LanguageSelector() {
+  const { t, i18n: languageI18n } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const currentCode = (languageI18n.language || 'en').split('-')[0];
+  const current = supportedLanguages.find(({ locale }) => locale === currentCode) ?? supportedLanguages[0];
+  const filtered = getLocaleSearchableLanguages(query);
+  return <div className="language-control" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}>
+    <button className="language-trigger" type="button" aria-label={`${t('language.selector')}: ${current.name}`} aria-expanded={open} aria-controls="language-options" onClick={() => setOpen((value) => !value)}>
+      <span className="language-flag" aria-hidden="true">{current.flag}</span><span className="language-name">{current.name}</span><span className="language-code">{current.code}</span><ChevronDown size={14} aria-hidden="true" />
+    </button>
+    {open && <div className="language-popover" id="language-options" role="dialog" aria-label={t('language.available')}>
+      <label className="language-search"><Search size={15} aria-hidden="true" /><input autoFocus type="search" aria-label={t('language.search')} placeholder={t('language.search')} value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+      <div className="language-options" aria-label={t('language.available')}>
+        {filtered.map((language) => <button className={`language-option${language.locale === current.locale ? ' is-current' : ''}`} key={language.locale} type="button" aria-pressed={language.locale === current.locale} onClick={() => { void setLocale(language.locale); setOpen(false); setQuery(''); }}>
+          <span className="language-flag" aria-hidden="true">{language.flag}</span><span className="language-option-name">{language.name}<small>{language.region}</small></span><span className="language-code">{language.code}</span>
+        </button>)}
+        {filtered.length === 0 && <p className="language-empty">{t('language.noResults')}</p>}
+      </div>
+      {!hasLocaleTranslations(current.locale) && <p className="language-fallback-note">{t('language.fallback')}</p>}
+    </div>}
+  </div>;
+}
+
 function Footer() {
+  const { t } = useTranslation();
   return <footer className="site-footer">
     <div className="shell footer-grid">
-      <div><Brand /><p>Precision for every market decision.</p><span className="source-note">Earth texture: NASA Black Marble. No live market connection.</span></div>
-      <div><h2>Explore</h2><Link to="/markets">Markets</Link><Link to="/platforms">Platforms</Link><Link to="/analysis">Analysis</Link></div>
-      <div><h2>Access</h2><Link to="/web-terminal">Web Terminal</Link><Link to="/robots/momentum-booster">Momentum Booster</Link><Link to="/login">Client login</Link></div>
+      <div><Brand /><p>A measured system for global markets.</p><span className="source-note">Earth texture: NASA Black Marble. No live market connection.</span></div>
+      <div><h2>Explore</h2><Link to="/markets">Markets</Link><Link to="/platforms">Platforms</Link><Link to="/analysis">Analysis</Link><Link to="/news">Market news</Link><Link to="/calendar">Economic calendar</Link></div>
+      <div><h2>Trading</h2><Link to="/web-terminal">VTA Web Trading Terminal</Link><Link to="/robots/momentum-booster">Momentum Booster</Link><Link to="/login">Client Area</Link></div>
       <div><h2>Company</h2><Link to="/about">About</Link><Link to="/faq">FAQ</Link><Link to="/contact">Contact</Link></div>
     </div>
+    <div className="shell footer-language-row"><div><span className="eyebrow">{t('language.selector')}</span><LanguageSelector /></div><span className="footer-language-note">Translations are added as reviewed language resources.</span></div>
     <div className="shell footer-bottom"><span>© 2026 VTA — Vector Trading Alliance</span><span>Product architecture preview · No financial service is active here</span></div>
   </footer>;
 }
 
 function PublicShell({ children }: { children: React.ReactNode }) {
-  return <><PublicHeader /><main id="main-content">{children}</main><Footer /></>;
+  return <><a className="skip-link" href="#main-content">Skip to content</a><PublicHeader /><main id="main-content" tabIndex={-1}>{children}</main><Footer /></>;
 }
 
 function PageIntro({ eyebrow, title, text, actions }: { eyebrow: string; title: string; text: string; actions?: React.ReactNode }) {
@@ -216,30 +266,46 @@ function EmptyState({ icon: Icon = Database, title, text, action }: { icon?: Luc
   return <div className="empty-state"><div className="empty-icon"><Icon size={22} /></div><div><h3>{title}</h3><p>{text}</p>{action}</div></div>;
 }
 
+function HomeAuthGateway() {
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<'choose' | 'signin' | 'signup'>('choose');
+  const { t } = useTranslation();
+  return <div className="home-auth-gateway">
+    <button className="button button--ghost home-terminal-trigger" type="button" aria-expanded={open} aria-controls="home-client-access" onClick={() => { setOpen((value) => !value); setMode('choose'); }}>
+      {t('home.clientAccess')} <UserRound size={17} />
+    </button>
+    <div className={`home-access-expansion${open ? ' is-open' : ''}`} id="home-client-access" aria-hidden={!open}>
+      {open && <div className="home-access-surface"><div className="home-access-heading"><div><span className="eyebrow">VTA / CLIENT ACCESS</span><h2>{mode === 'choose' ? t('home.clientAccess') : mode === 'signin' ? t('auth.authHeroSignIn') : t('auth.authHeroSignUp')}</h2><p>{t('home.chooseAccess')}</p></div><button className="home-access-close" type="button" aria-label={t('home.closeAccess')} onClick={() => { setOpen(false); setMode('choose'); }}><X size={17}/></button></div>
+        {mode === 'choose' ? <div className="home-access-choices"><button className="button" type="button" onClick={() => setMode('signin')}>{t('auth.signIn')} <ArrowRight size={16}/></button><button className="button button--ghost" type="button" onClick={() => setMode('signup')}>{t('auth.signUp')} <ArrowUpRight size={16}/></button></div> : <AuthPage key={mode} inline register={mode === 'signup'} onDemoSignIn={() => {}} onInlineModeChange={setMode}/>}
+      </div>}
+    </div>
+  </div>;
+}
+
 function HomePage() {
   return <>
-    <section className="hero"><div className="shell hero-grid">
-      <div className="hero-copy"><span className="eyebrow">UNIFIED. INTELLIGENT. AHEAD.</span><h1>Precision for every <span>market decision.</span></h1><p>VTA brings multi-asset market access, analytics and technology into a measured ecosystem—built around clarity before complexity.</p><div className="hero-actions"><Link className="button" to="/register">Explore VTA access <ArrowUpRight size={17} /></Link><Link className="button button--ghost" to="/web-terminal">View Web Terminal <TerminalSquare size={17} /></Link></div><div className="connection-line"><Status>NOT CONNECTED</Status><span>Connect a legitimate VTA account when access is available.</span></div></div>
-      <div className="globe-stage" aria-label="Illustrative VTA digital globe"><div className="globe-grid" /><img src="/assets/nasa-black-marble.jpg" alt="" /><div className="orbit orbit--one" /><div className="orbit orbit--two" /><div className="vector-line vector-line--one"><i /><b /></div><div className="vector-line vector-line--two"><i /><b /></div><div className="globe-card globe-card--top"><Status tone="amber">PREVIEW ENVIRONMENT</Status><strong>VTA ecosystem</strong><span>Services not connected</span></div><div className="globe-card globe-card--bottom"><span className="mono">GLOBAL SIGNAL MAP</span><strong>6 market areas</strong><span>Data connection unavailable</span></div></div>
-    </div></section>
-    <section className="shell signal-strip" aria-label="VTA system status"><div><span className="mono">MARKET DATA</span><Status>UNAVAILABLE</Status></div><div><span className="mono">CLIENT ACCOUNT</span><strong>Not connected</strong></div><div><span className="mono">AUTOMATION</span><strong>Inactive</strong></div><div><span className="mono">RESEARCH ENGINE</span><strong>Preview only</strong></div></section>
-    <section className="section shell"><SectionHeading label="ONE INTELLIGENT LAYER" title="A coherent trading ecosystem." copy="VTA keeps platforms, intelligence, funding architecture and operations in one intentional product language." /><div className="product-grid">{products.map(({ icon: Icon, title, text, to, flag }) => <article className="product-card" key={title}><div className="card-top"><div className="icon-tile"><Icon size={22} /></div><span className="mono">{flag}</span></div><h3>{title}</h3><p>{text}</p><MiniGraph accent={title === 'Momentum Booster' ? 'var(--amber)' : 'var(--mint)'} /><ArrowLink to={to}>Explore product</ArrowLink></article>)}</div></section>
-    <section className="section section--soft"><div className="shell"><SectionHeading label="THE VTA SYSTEM" title="Six areas, designed to work together." /><div className="ecosystem-grid">{ecosystem.map(({ icon: Icon, title, text }, index) => <article className="ecosystem-item" key={title}><span className="ecosystem-number">0{index + 1}</span><Icon size={21} /><h3>{title}</h3><p>{text}</p></article>)}</div></div></section>
-    <section className="section shell"><div className="terminal-showcase"><div className="terminal-copy"><span className="eyebrow">VTA WEB TERMINAL</span><h2>See the context before the action.</h2><p>A premium workspace for instruments, research, positions and execution controls—with nothing implied as live until a verified connection exists.</p><div className="terminal-badges"><Status>NO LIVE MARKET DATA</Status><Status>ORDERS DISABLED</Status></div><ArrowLink to="/web-terminal">Open terminal preview</ArrowLink></div><TerminalFrame /></div></section>
-    <section className="section shell"><div className="cta-panel"><div><span className="eyebrow">TRANSPARENT BY DESIGN</span><h2>Start with the system. Connect when it is real.</h2><p>Explore the VTA product architecture without invented balances, performance or account activity.</p></div><div><Link className="button" to="/platforms">Explore platforms <ArrowRight size={17} /></Link></div></div></section>
+    <section className="hero hero--global"><div className="shell hero-grid">
+      <div className="hero-copy"><span className="eyebrow">VECTOR TRADING ALLIANCE / GLOBAL MARKETS</span><h1>Global markets. <span>Connected by insight.</span></h1><p>Markets, technology and human decisions—moving together across a connected financial world.</p><div className="hero-actions"><Link className="button" to="/markets">Explore the markets <ArrowUpRight size={17} /></Link><HomeAuthGateway /></div><div className="connection-line"><Status>ILLUSTRATIVE WORLD VIEW</Status><span>Global perspective. Clear market context.</span></div></div>
+      <div className="globe-stage" aria-label="Illustrative Earth view representing VTA’s global market perspective"><div className="globe-grid" /><img src="/assets/nasa-black-marble.jpg" alt="" /><div className="orbit orbit--one" /><div className="orbit orbit--two" /><div className="vector-line vector-line--one"><i /><b /></div><div className="vector-line vector-line--two"><i /><b /></div><div className="globe-card globe-card--top"><span className="mono">GLOBAL / CONNECTED</span><strong>Markets in motion</strong><span>Illustrative network view</span></div><div className="globe-card globe-card--bottom"><span className="mono">VTA / FINANCIAL WORLD</span><strong>Across every market</strong><span>People · perspective · technology</span></div></div>
+    </div><div className="hero-coordinate mono" aria-hidden="true">GLOBAL MARKETS / 01<br/>ILLUSTRATIVE VIEW</div></section>
+    <div className="market-marquee" aria-label="Market categories shown for illustration, not live data"><div className="market-marquee-track" aria-hidden="true">{[0, 1].map((copy) => <div className="market-marquee-run" key={copy}><span>FOREX</span><i/><span>GOLD / XAU</span><i/><span>CRYPTO</span><i/><span>GLOBAL INDICES</span><i/><span>ENERGIES</span><i/><span>GLOBAL EQUITIES</span><i/></div>)}</div><span className="market-marquee-note">GLOBAL MARKETS <b>·</b> ILLUSTRATIVE, NOT LIVE</span></div>
+    <section className="market-world section" aria-labelledby="market-world-title"><div className="shell"><div className="market-world-heading"><div><span className="eyebrow">A WORLD OF MARKETS</span><h2 id="market-world-title">A global view.<br/><span>Every market in context.</span></h2></div><Link className="market-world-link" to="/markets">Discover the market universe <ArrowRight size={16}/></Link></div><div className="market-world-grid"><Link className="gold-editorial" to="/markets" aria-label="Explore gold and precious metals markets"><img src="/assets/vta-gold-market.png" alt="Sculpted gold bullion surface with subtle reflected chart lines" loading="lazy" decoding="async"/><span className="gold-editorial-shade"/><span className="gold-editorial-index">01 / PRECIOUS METALS</span><span className="gold-editorial-copy"><strong>Gold, in focus.</strong><span>XAU <i/> USD</span><small>Editorial visual · no live prices</small></span><span className="gold-editorial-mark" aria-hidden="true">Au</span><svg className="gold-chart-trace" viewBox="0 0 420 110" fill="none" aria-hidden="true"><path d="M0 86C42 81 50 62 88 69S137 45 169 54 205 48 235 35 278 56 308 40 350 35 420 8"/><path d="M0 103H420"/></svg></Link><div className="market-constellation" aria-label="Illustrative market categories"><Link to="/markets" className="market-orbit market-orbit--forex"><span className="market-orbit-icon">ƒx</span><span><b>FOREX</b><small>EUR / USD · GLOBAL CURRENCIES</small></span><ArrowUpRight size={15}/></Link><Link to="/markets" className="market-orbit market-orbit--crypto"><span className="market-orbit-icon">₿</span><span><b>CRYPTO</b><small>DIGITAL ASSET MARKETS</small></span><ArrowUpRight size={15}/></Link><Link to="/markets" className="market-orbit market-orbit--indices"><span className="market-orbit-icon"><BarChart3 size={18}/></span><span><b>INDICES</b><small>GLOBAL EQUITY MARKETS</small></span><ArrowUpRight size={15}/></Link><Link to="/markets" className="market-orbit market-orbit--energy"><span className="market-orbit-icon"><Globe2 size={18}/></span><span><b>COMMODITIES</b><small>ENERGY · METALS · MORE</small></span><ArrowUpRight size={15}/></Link></div></div></div></section>
+    <section className="global-reach" aria-label="VTA connects perspectives across global market regions"><img src="/assets/nasa-black-marble.jpg" alt="" loading="lazy" decoding="async"/><div className="global-reach-scrim"/><div className="shell global-reach-content"><span className="eyebrow">CONNECTED TO THE WORLD</span><h2>One financial world.<br/><span>Many points of view.</span></h2><p>From regional sessions to cross-asset movement, the global economy is always part of the story.</p><div className="region-line"><span>ASIA PACIFIC</span><i/><span>EUROPE</span><i/><span>THE AMERICAS</span></div><span className="global-reach-note">ILLUSTRATIVE GLOBAL NETWORK · NO LIVE MARKET FEED</span></div><div className="global-route global-route--one"/><div className="global-route global-route--two"/><div className="global-node global-node--one"/><div className="global-node global-node--two"/><div className="global-node global-node--three"/></section>
+    <section className="market-intelligence section"><div className="shell intelligence-layout"><div className="intelligence-copy"><span className="eyebrow">MARKET INTELLIGENCE / NEWS</span><h2>Read the forces<br/><span>behind the movement.</span></h2><p>Financial intelligence begins with context. VTA’s editorial architecture is prepared for a verified market-news feed.</p><div className="intelligence-status"><Status tone="amber">FEED NOT CONNECTED</Status><span>No live headlines are displayed.</span></div><Link className="arrow-link" to="/news">Explore market news <ArrowRight size={16}/></Link></div><div className="intelligence-field"><div className="intelligence-field-top"><span className="mono">EDITORIAL LENS / PREVIEW</span><span className="intelligence-signal"><i/> SOURCE REQUIRED</span></div><div className="intelligence-orbit" aria-hidden="true"><span/><span/><span/></div><div className="intelligence-themes"><span><i>01</i> MONETARY POLICY</span><span><i>02</i> CROSS-ASSET THEMES</span><span><i>03</i> GLOBAL ECONOMY</span></div><span className="intelligence-field-caption">ILLUSTRATIVE TOPICS · NOT LIVE NEWS</span></div></div></section>
+    <section className="flagship-section flagship-section--compact"><div className="shell flagship-product"><div className="flagship-product-visual"><div className="flagship-product-halo"/><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/robot_front_hero.png-N70CgRzI9sarkwtTwkHjxx5sX8Rdff.webp" alt="Momentum Booster robot portrait in a dark blue and gold-lit trading environment" loading="lazy" decoding="async"/><span className="flagship-art-label mono">VTA AUTOMATION / ADVANCED V1</span></div><div className="flagship-product-copy"><span className="eyebrow">VTA WEB TRADING TERMINAL / MOMENTUM BOOSTER</span><h2>Designed for<br/><span>disciplined decisions.</span></h2><p>A clear sequence across four timeframes, built to support a trader’s process—not replace their judgment.</p><div className="flagship-truth"><Status tone="amber">RESULTS PRIVATE</Status><Status>RUNTIME UNAVAILABLE</Status></div><ArrowLink to="/robots/momentum-booster">Explore Momentum Booster</ArrowLink></div></div></section>
+    <section className="platform-thread section"><div className="shell platform-thread-inner"><div className="platform-thread-copy"><span className="eyebrow">TRADING TECHNOLOGY</span><h2>Tools for the way<br/>markets are explored.</h2><p>A proprietary VTA experience spanning the Web Trading Terminal and its Momentum Booster automation.</p><Link className="arrow-link" to="/platforms">Explore VTA platforms <ArrowRight size={16}/></Link></div><div className="platform-marks" aria-label="VTA proprietary trading experience"><Link to="/web-terminal" aria-label="Open VTA Web Trading Terminal"><img src="/logo-mark.svg" alt="" aria-hidden="true"/><span>VTA Web Trading Terminal</span></Link><span className="platform-marks-divider"/><Link to="/robots/momentum-booster" aria-label="Explore Momentum Booster, part of the VTA Web Trading Terminal"><img src="/assets/branding/momentum-booster-robot.png" alt="" aria-hidden="true"/><span>Momentum Booster</span></Link><span className="platform-marks-note">ONE PROPRIETARY TRADING EXPERIENCE</span></div></div></section>
+    <section className="service-story" aria-labelledby="service-story-title"><div className="shell service-story-inner"><div className="service-story-heading"><span className="eyebrow">SERVICE INFRASTRUCTURE / DESIGN INTENT</span><h2 id="service-story-title">Built around access.<br/><span>Grounded in transparency.</span></h2></div><p>VTA’s planned service model brings professional platforms, multi-market access and considered funding pathways into one coherent client experience. Operating conditions, payment rails and support channels are not connected in this preview.</p><div className="service-story-principles"><span><b>01</b> Trading technology</span><span><b>02</b> Account-first funding</span><span><b>03</b> Clear service status</span></div></div></section>
+    <section className="home-finale"><div className="shell home-finale-inner"><div><span className="eyebrow">VTA / THE GLOBAL FINANCIAL WORLD</span><h2>Human judgment.<br/><span>Technology with perspective.</span></h2></div><div className="home-finale-actions"><Link className="button" to="/about">Discover VTA <ArrowUpRight size={16}/></Link><Link className="text-link" to="/login">Client Area <ArrowRight size={15}/></Link></div></div></section>
   </>;
 }
 
-function TerminalFrame() {
-  return <div className="terminal-frame"><div className="terminal-top"><div className="terminal-dots"><i /><i /><i /></div><span className="terminal-brand"><img src="/logo-mark.svg" alt="" aria-hidden="true"/>VTA / WEB TERMINAL</span><Status>OFFLINE</Status></div><div className="terminal-body"><aside><span className="mono">WATCHLIST</span>{['FX · EUR/USD', 'MT · XAU/USD', 'IX · US 500', 'CR · BTC/USD'].map((item) => <button key={item}>{item}<span>—</span></button>)}</aside><div className="chart-area"><div className="chart-tools"><span>EUR/USD</span><div><button>1H</button><button className="active">4H</button><button>1D</button></div></div><div className="chart-empty"><LineChart size={36} /><strong>No live market data</strong><span>Connect a verified feed to view charts.</span></div></div></div></div>;
-}
 
 function MarketsPage() {
-  return <PublicShell><PageIntro eyebrow="MULTI-ASSET STRUCTURE" title="Markets, without the noise." text="Explore VTA’s market taxonomy across six global areas. Reference cards describe product scope only; no live prices are displayed." actions={<><Link className="button" to="/web-terminal">Open terminal preview <ArrowUpRight size={17} /></Link><Link className="button button--ghost" to="/analysis">Explore analysis</Link></>} /><section className="section shell"><div className="market-grid">{marketFamilies.map((market) => <article className={`market-card market-card--${market.accent}`} key={market.name}><div><span className="market-symbol">{market.symbol}</span><Status>REFERENCE</Status></div><h2>{market.name}</h2><p>{market.text}</p><ArrowLink to="/web-terminal">View in terminal</ArrowLink></article>)}</div></section><section className="section shell"><SectionHeading label="MARKET SNAPSHOTS" title="Connected data appears here when verified." copy="These instruments are navigation references—not price, liquidity, or execution information." /><div className="table-card table-scroll"><table><thead><tr><th>Instrument</th><th>Market area</th><th>Data status</th><th>Last update</th></tr></thead><tbody>{[['EUR/USD','Forex'],['XAU/USD','Metals'],['Brent','Energies'],['US 500','Indices'],['Global equity','Stocks'],['BTC/USD','Crypto']].map(([instrument, area]) => <tr key={instrument}><td><strong>{instrument}</strong></td><td>{area}</td><td><Status>NO LIVE DATA</Status></td><td className="muted">Unavailable</td></tr>)}</tbody></table></div></section></PublicShell>;
+  return <PublicShell><PageIntro eyebrow="MULTI-ASSET STRUCTURE" title="Markets, without the noise." text="Explore VTA’s market taxonomy across six global areas. Reference cards describe product scope only; no live prices are displayed." actions={<><Link className="button" to="/web-terminal">Open VTA Web Trading Terminal <ArrowUpRight size={17} /></Link><Link className="button button--ghost" to="/analysis">Explore analysis</Link></>} /><section className="section shell"><div className="market-grid">{marketFamilies.map((market) => <article className={`market-card market-card--${market.accent}`} key={market.name}><div><span className="market-symbol">{market.symbol}</span><Status>REFERENCE</Status></div><h2>{market.name}</h2><p>{market.text}</p><ArrowLink to="/web-terminal">View in terminal</ArrowLink></article>)}</div></section><section className="section shell"><SectionHeading label="MARKET SNAPSHOTS" title="Connected data appears here when verified." copy="These instruments are navigation references—not price, liquidity, or execution information." /><div className="table-card table-scroll"><table><thead><tr><th>Instrument</th><th>Market area</th><th>Data status</th><th>Last update</th></tr></thead><tbody>{[['EUR/USD','Forex'],['XAU/USD','Metals'],['Brent','Energies'],['US 500','Indices'],['Global equity','Stocks'],['BTC/USD','Crypto']].map(([instrument, area]) => <tr key={instrument}><td><strong>{instrument}</strong></td><td>{area}</td><td><Status>NO LIVE DATA</Status></td><td className="muted">Unavailable</td></tr>)}</tbody></table></div></section></PublicShell>;
 }
 
 function PlatformsPage() {
-  return <PublicShell><PageIntro eyebrow="VTA ECOSYSTEM" title="Platforms with a shared point of view." text="Each VTA environment follows one design language while remaining truthful about connection and platform availability." /><section className="section shell platform-stack">{products.map(({ title, text, icon: Icon, to, flag }, index) => <article className="platform-row" key={title}><div className="platform-index">0{index + 1}</div><div className="icon-tile"><Icon /></div><div><span className="mono">{flag}</span><h2>{title}</h2><p>{text}</p></div><ArrowLink to={to}>Explore</ArrowLink></article>)}</section><section className="section section--soft"><div className="shell split-panel"><div><span className="eyebrow">ONE ACCOUNT LAYER</span><h2>Connection is explicit.</h2><p>VTA will never infer a broker, wallet, or account connection. Account access, platform linking and funding actions remain visibly unconnected until a verified integration is present.</p></div><div className="state-stack"><Status>ACCOUNT NOT CONNECTED</Status><Status>PLATFORM NOT LINKED</Status><Status>WALLET UNAVAILABLE</Status></div></div></section></PublicShell>;
+  return <PublicShell><PageIntro eyebrow="VTA ECOSYSTEM" title="Distinct identities. One ecosystem." text="Explore the VTA platforms and tools. Each product keeps its authentic identity, with availability and connection status made clear." /><section className="section shell platform-ecosystem" aria-label="VTA platforms and trading technology">{products.map(({ title, to, flag, visual, visualAlt, summary }, index) => <Link className={`platform-card platform-card--${visual}`} key={title} to={to}><div className="platform-card-meta"><span className="platform-index">0{index + 1} <i>/ {String(products.length).padStart(2, '0')}</i></span><Status>{flag}</Status></div><div className={`platform-plaque platform-plaque--${visual}`}>{visual === 'terminal' ? <div className="platform-terminal-identity"><img src="/logo-mark.svg" alt="" aria-hidden="true"/><span>VTA<small>WEB TERMINAL</small></span></div> : <img src="/assets/branding/momentum-booster-robot.png" alt={visualAlt} loading="lazy" decoding="async" />}</div><div className="platform-card-copy"><h2>{title}</h2><p>{summary}</p><ArrowRight size={17} aria-hidden="true"/></div></Link>)}</section><section className="section section--soft"><div className="shell split-panel"><div><span className="eyebrow">ONE ACCOUNT LAYER</span><h2>Connection is explicit.</h2><p>VTA will never infer a broker, wallet, or account connection. Account access, platform linking and funding actions remain visibly unconnected until a verified integration is present.</p></div><div className="state-stack"><Status>ACCOUNT NOT CONNECTED</Status><Status>PLATFORM NOT LINKED</Status><Status>WALLET UNAVAILABLE</Status></div></div></section></PublicShell>;
 }
 
 function TerminalChart({ bars, timeframe, symbol }: { bars: Bar[]; timeframe: string; symbol: string }) {
@@ -256,6 +322,10 @@ function TerminalChart({ bars, timeframe, symbol }: { bars: Bar[]; timeframe: st
 }
 
 function TerminalPage() {
+  return <PublicShell><TradingTerminalExperience /></PublicShell>;
+}
+
+function LegacyTerminalPage() {
   const [query, setQuery] = useState('');
   const [assetClass, setAssetClass] = useState<AssetClass | 'All'>('All');
   const [selectedSymbol, setSelectedSymbol] = useState<Instrument>(instrumentRegistry[0]);
@@ -276,16 +346,16 @@ function TerminalPage() {
   return <PublicShell><section className="terminal-page shell"><div className="terminal-page-head"><div><span className="eyebrow">VTA WEB TRADING TERMINAL / PHASE 1</span><h1>Market context before execution.</h1><p>Provider-separated workspace with historical candles, symbol discovery and paper-only order rehearsal.</p></div><div className="terminal-status-stack"><Status tone={dataState === 'HISTORICAL DATA' ? 'good' : 'amber'}>{dataState}</Status><small>{source}</small></div></div><div className="terminal-workspace terminal-workspace--pro"><aside className="terminal-sidebar"><div className="search-control"><Search size={16}/><input aria-label="Search instruments" placeholder="Search symbol or asset class" value={query} onChange={(event) => setQuery(event.target.value)} /></div><div className="terminal-filter-row"><select aria-label="Filter asset class" value={assetClass} onChange={(event) => setAssetClass(event.target.value as AssetClass | 'All')}><option>All</option><option>Forex</option><option>Crypto</option><option>Metals</option><option>Indices</option><option>Commodities</option><option>Stocks</option></select><span className="mono">{filtered.length} SYMBOLS</span></div><span className="mono">WATCHLIST</span><div className="watch-list watch-list--pro">{watchlist.map((symbol) => { const item = instrumentRegistry.find((candidate) => candidate.symbol === symbol); return item ? <button type="button" className={selectedSymbol.symbol === item.symbol ? 'active' : ''} key={symbol} onClick={() => choose(item)}><span><b>{item.display}</b><small>{item.assetClass} · {item.status}</small></span><em>{item.status === 'HISTORICAL AVAILABLE' ? 'HIST' : '—'}</em></button> : null; })}</div><span className="mono">INSTRUMENT REGISTRY</span><div className="watch-list watch-list--registry">{filtered.map((item) => <button type="button" className={selectedSymbol.symbol === item.symbol ? 'active' : ''} key={item.symbol} onClick={() => choose(item)}><span><b>{item.display}</b><small>{item.assetClass}</small></span><em>{item.status === 'HISTORICAL AVAILABLE' ? 'DATA' : 'N/A'}</em></button>)}</div></aside><section className="terminal-main terminal-main--pro"><div className="terminal-toolbar terminal-toolbar--pro"><div><strong>{selectedSymbol.display}</strong><span>{selectedSymbol.assetClass} · {dataState} · {selectedSymbol.status === 'HISTORICAL AVAILABLE' ? 'Provider connected' : 'Provider unavailable'}</span></div><div className="periods periods--pro">{['1m','5m','15m','30m','1H','4H','1D','1W','1M'].map((period) => <button type="button" className={timeframe === period ? 'active' : ''} key={period} onClick={() => setTimeframe(period)}>{period}</button>)}</div></div><div className="chart-toolbar-pro"><div className="drawing-tools">{['Cursor','Crosshair','Trend Line','Horizontal','Vertical','Rectangle','Fibonacci'].map((tool) => <button type="button" className={drawingTool === tool ? 'active' : ''} key={tool} title={`${tool} drawing tool`} onClick={() => setDrawingTool(tool)}>{tool}</button>)}</div><label>Indicator<select value={indicator} onChange={(event) => setIndicator(event.target.value)}><option>None</option><option>SMA</option><option>EMA</option><option>RSI</option><option>MACD</option><option>Bollinger Bands</option><option>Stochastic</option><option>ATR</option><option>ADX</option><option>Volume</option></select></label><Status>{drawingTool.toUpperCase()}</Status></div><TerminalChart bars={bars} timeframe={timeframe} symbol={selectedSymbol.display}/><div className="terminal-indicator-panel"><span className="mono">INDICATOR PANEL</span><strong>{indicator === 'None' ? 'No indicator selected' : `${indicator} · configuration surface ready`}</strong><small>{indicator === 'None' ? 'Choose an indicator to reserve a separate panel below the chart.' : 'Indicator calculation is isolated for the next provider-backed phase.'}</small></div><div className="terminal-lower terminal-lower--pro"><div className="terminal-data-panel"><div className="terminal-data-panel-head"><span className="mono">POSITIONS</span><Status>NO CONNECTED ACCOUNT</Status></div><EmptyState icon={BriefcaseBusiness} title="No positions" text="Positions appear only after an approved account provider is connected." /></div><div className="terminal-data-panel"><div className="terminal-data-panel-head"><span className="mono">ORDERS / HISTORY</span><Status>UNAVAILABLE</Status></div><EmptyState icon={FileText} title="No order history" text="No execution is claimed from this terminal preview." /></div></div></section><aside className="order-ticket order-ticket--pro"><div className="ticket-head"><span className="mono">ORDER TICKET</span><Status tone="amber">PAPER ONLY</Status></div><div className="ticket-symbol"><span>{selectedSymbol.display}</span><small>{selectedSymbol.assetClass} · {dataState}</small></div><div className="ticket-side"><button type="button" className={side === 'BUY' ? 'active buy' : ''} onClick={() => setSide('BUY')}>BUY</button><button type="button" className={side === 'SELL' ? 'active sell' : ''} onClick={() => setSide('SELL')}>SELL</button></div><form onSubmit={submitOrder}><label>Order type<select value={orderType} onChange={(event) => setOrderType(event.target.value)}><option>Market</option><option>Limit</option><option>Stop</option><option>Stop Limit</option></select></label><label>Volume<input type="number" min="0.001" step="0.001" defaultValue="0.010" /></label><label>Price<input placeholder={orderType === 'Market' ? 'Market price' : 'Required for pending order'} disabled={orderType === 'Market'} /></label><div className="ticket-estimate"><span>Spread <b>Provider dependent</b></span><span>Margin <b>Not calculated</b></span><span>Execution <b>Paper rehearsal</b></span></div><button className="button button--block" type="submit">Review {side} order <ArrowRight size={15}/></button></form>{orderMessage && <div className="ticket-message" role="status">{orderMessage}</div>}<p className="ticket-disclosure">Orders are never sent to a broker in this preview. Any review is labelled DEMO / PAPER EXECUTION.</p></aside></div></section></PublicShell>;
 }
 
-function PlatformDetail({ platform }: { platform: 'MT4' | 'MT5' }) {
-  const isMt5 = platform === 'MT5';
-  return <PublicShell><PageIntro eyebrow={`VTA × ${platform}`} title={`${platform} architecture, prepared with restraint.`} text={isMt5 ? 'A multi-asset platform surface designed for future legitimate VTA account and research integration.' : 'A deliberate bridge for established MT4 workflows, prepared without implying a broker connection or download.'} actions={<Link className="button" to="/platforms">Explore platforms <ArrowRight size={17}/></Link>} /><section className="section shell"><div className="platform-detail-grid"><div className="platform-visual"><div className="platform-window"><div className="platform-window-top"><span className="platform-window-brand">{isMt5 && <img src="/assets/branding/metatrader5.svg" alt="MetaTrader 5"/>}<strong>{platform}</strong><span> / VTA</span></span><Status>NOT LINKED</Status></div><div className="platform-window-body"><div className="platform-rail"><i/><i/><i/><i/></div><div className="platform-canvas"><MiniGraph /><span className="mono">CONNECTION REQUIRED</span></div></div></div></div><div><span className="eyebrow">INTEGRATION CONCEPT</span><h2>Designed to surface platform status clearly.</h2><p>VTA will present account linkage, terminal availability, research context and automation readiness without claiming that any platform, broker account or download is currently active.</p><ul className="feature-list"><li><Check/> Platform status architecture</li><li><Check/> Future account-link surface</li><li><Check/> Research-context handoff</li><li><Check/> {isMt5 ? 'MT5 automation architecture prepared' : 'MT4 automation architecture prepared'}</li></ul></div></div></section><section className="section section--soft"><div className="shell split-panel"><div><span className="eyebrow">MOMENTUM BOOSTER</span><h2>Compatibility is not assumed.</h2><p>The product architecture is ready to record confirmed platform compatibility only after the original robot file is inspected and a legitimate integration path is approved.</p></div><div className="state-stack"><Status>ROBOT FILE NOT PROVIDED</Status><Status>COMPATIBILITY UNCONFIRMED</Status></div></div></section></PublicShell>;
+function PlatformDetail({ platform }: { platform: 'VTA Web Trading Terminal' | 'Momentum Booster' }) {
+  const isVtaTerminal = platform === 'VTA Web Trading Terminal';
+  return <PublicShell><PageIntro eyebrow={`VTA × ${platform}`} title={`${platform} architecture, prepared with restraint.`} text={isVtaTerminal ? 'A browser-based VTA workspace for market context and research.' : 'Momentum Booster is VTA’s proprietary automation experience within the Web Trading Terminal.'} actions={<Link className="button" to="/platforms">Explore platforms <ArrowRight size={17}/></Link>} /><section className="section shell"><div className="platform-detail-grid"><div className="platform-visual"><div className="platform-window"><div className="platform-window-top"><span className="platform-window-brand"><strong>{platform}</strong><span> / VTA</span></span><Status>NOT LINKED</Status></div><div className="platform-window-body"><div className="platform-rail"><i/><i/><i/><i/></div><div className="platform-canvas"><MiniGraph /><span className="mono">CONNECTION REQUIRED</span></div></div></div></div><div><span className="eyebrow">VTA TRADING EXPERIENCE</span><h2>Designed to keep terminal status clear.</h2><p>The VTA Web Trading Terminal combines market research with the proprietary Momentum Booster automation experience. Account data and trading remain unavailable until verified services are configured.</p><ul className="feature-list"><li><Check/> Platform status architecture</li><li><Check/> Future account-link surface</li><li><Check/> Research-context handoff</li><li><Check/> VTA automation architecture prepared</li></ul></div></div></section><section className="section section--soft"><div className="shell split-panel"><div><span className="eyebrow">MOMENTUM BOOSTER</span><h2>One proprietary trading experience.</h2><p>Momentum Booster is part of the VTA Web Trading Terminal, with a dedicated decision pipeline and transparent runtime state.</p></div><div className="state-stack"><Status>RUNTIME UNAVAILABLE</Status><Status>TRADING DISABLED</Status></div></div></section></PublicShell>;
 }
 
 function MomentumBoosterPage() {
   const modules = [
     ['Overview', 'SOURCE IMPLEMENTED'], ['Live Status', 'DEMO / UNAVAILABLE'], ['Market Regime', 'CODED / UNTESTED'], ['Signal', 'CODED / UNTESTED'], ['Signal Score', '7 COMPONENTS'], ['Risk', 'RISK-FIRST'], ['Positions', 'UNAVAILABLE'], ['Trade History', 'UNAVAILABLE'], ['Execution Log', 'CODED / UNTESTED'], ['Strategy', '4 MODES'], ['Risk Configuration', 'CONFIGURABLE'], ['News', 'SAFE MODE'], ['AI', 'OFF BY DEFAULT'], ['License', 'LOCAL GATE'], ['Audit', 'STRUCTURED LOGGING'],
   ];
-  return <PublicShell><section className="booster-hero"><div className="shell booster-hero-grid"><div><span className="eyebrow">AUTOMATION / ADVANCED V1</span><h1>Momentum Booster <span>EA — Advanced V1.</span></h1><p>A from-scratch MT5 Expert Advisor built around H1 context, M15 structure, M5 confirmation and precise M1 execution. The user has tested this same source version; VTA does not publish the test results or present them as a performance guarantee.</p><div className="hero-actions"><a className="button" href="#architecture">Review engine architecture <ArrowUpRight size={17} /></a><Link className="button button--ghost" to="/portal/robot">Open Portal module <Bot size={17} /></Link></div></div><div className="booster-orbit"><div className="booster-core"><img className="booster-product-image" src="/assets/branding/momentum-booster-robot.png" alt="Momentum Booster robot product artwork"/><span>MB V1</span></div><div className="booster-ring booster-ring--a"/><div className="booster-ring booster-ring--b"/><div className="booster-node booster-node--1"><Status tone="good">SOURCE READY</Status></div><div className="booster-node booster-node--2"><Status>DEMO MODE</Status></div><div className="booster-node booster-node--3"><Status tone="amber">USER TESTED / RESULTS PRIVATE</Status></div></div></div></section><section id="architecture" className="section shell"><div className="booster-status-grid"><article><span className="mono">SOURCE + TEST STATUS</span><strong>USER TESTED</strong><p>The user reports testing this same source version. Results remain private and are not presented as a performance claim.</p></article><article><span className="mono">DECISION PIPELINE</span><strong>H1 → M15 → M5 → M1</strong><p>Context, structure, confirmation and execution are kept in separate deterministic stages.</p></article><article><span className="mono">CURRENT RUNTIME</span><Status>DEMO / UNAVAILABLE</Status><p>No broker, connector, license service or live market feed is configured here.</p></article><article><span className="mono">PERFORMANCE CLAIMS</span><Status tone="amber">NONE</Status><p>No profitability, win-rate, drawdown or backtest result is claimed.</p></article></div><div className="engine-pipeline"><span>DATA QUALITY</span><b>→</b><span>H1 BIAS</span><b>→</b><span>M15 STRUCTURE</span><b>→</b><span>M5 CONFIRMATION</span><b>→</b><span>M1 EXECUTION</span><b>→</b><span>RISK</span><b>→</b><span>ORDER RECONCILIATION</span></div></section><section className="section section--soft"><div className="shell"><SectionHeading label="IMPLEMENTED MODULE MAP" title="Every required surface has a named state." copy="The VTA layer exposes architecture without fabricating live account, position, execution, news or AI values." /><div className="booster-module-grid">{modules.map(([name, state], index) => <article key={name}><span className="step-number">{String(index + 1).padStart(2, '0')}</span><div><h3>{name}</h3><Status tone={state === 'SOURCE IMPLEMENTED' || state === 'RISK-FIRST' ? 'good' : state === 'MT5 TESTING REQUIRED' ? 'amber' : 'neutral'}>{state}</Status></div></article>)}</div></div></section><section className="section shell"><div className="booster-architecture"><article><span className="step-number">01</span><h3>Deterministic signal engine</h3><p>EMA20/50, RSI14, ADX14, DI+/DI−, ATR14, Bollinger width, closed-candle structure, liquidity, volume and candle quality feed weighted scoring.</p></article><article><span className="step-number">02</span><h3>Risk authority</h3><p>Conservative, balanced, aggressive and bounded custom profiles feed OrderCalcProfit sizing, drawdown, loss, margin, exposure, session, spread and position limits.</p></article><article><span className="step-number">03</span><h3>Protective management</h3><p>Every live order requires validated SL/TP. Break-even, ATR trailing, holding-time and optional partial-close controls manage existing positions locally.</p></article><article><span className="step-number">04</span><h3>Explainable audit</h3><p>Dashboard and structured logs expose regime, bias, structure, score, risk, block reason, retcode, ticket, license and execution reconciliation.</p></article></div></section><section className="section shell robot-console"><div><span className="eyebrow">CLIENT PORTAL MODULE</span><h2>Robot state is visible without pretending it is live.</h2><p>Open the Portal to inspect the same module map, with DEMO, SAFE MODE, BLOCKED, READY and LIVE states reserved for verified runtime conditions.</p><ArrowLink to="/portal/robot">View Portal robot state</ArrowLink></div><div className="robot-status-panel"><div><span>Source</span><Status tone="good">SOURCE PRESENT</Status></div><div><span>Runtime</span><Status>DEMO</Status></div><div><span>Account</span><Status>NOT CONNECTED</Status></div><div><span>Executions</span><Status>UNAVAILABLE</Status></div></div></section></PublicShell>;
+  return <PublicShell><section className="booster-hero"><div className="shell booster-hero-grid"><div><span className="eyebrow">VTA WEB TRADING TERMINAL / MOMENTUM BOOSTER</span><h1>Momentum Booster <span>Engineered for sequence.</span></h1><p>VTA’s proprietary trading experience within the Web Trading Terminal. Momentum Booster organizes H1 context, M15 structure, M5 confirmation and M1 execution into a deliberate decision path. Reported test results remain private and are not a performance claim.</p><div className="hero-actions"><a className="button" href="#architecture">Explore the decision engine <ArrowUpRight size={17} /></a><Link className="button button--ghost" to="/web-terminal">Open VTA Web Trading Terminal <TerminalSquare size={17} /></Link></div><div className="engine-pipeline" aria-label="Momentum Booster timeframe decision sequence"><span>H1 <small>CONTEXT</small></span><b>→</b><span>M15 <small>STRUCTURE</small></span><b>→</b><span>M5 <small>CONFIRMATION</small></span><b>→</b><span>M1 <small>EXECUTION</small></span></div></div><div className="booster-orbit"><div className="booster-core"><img className="booster-product-image" src="/assets/branding/momentum-booster-robot.png" alt="Momentum Booster robot product artwork"/><span>MB V1</span></div><div className="booster-ring booster-ring--a"/><div className="booster-ring booster-ring--b"/><div className="booster-node booster-node--1"><Status tone="good">SOURCE READY</Status></div><div className="booster-node booster-node--2"><Status>DEMO MODE</Status></div><div className="booster-node booster-node--3"><Status tone="amber">USER TESTED / RESULTS PRIVATE</Status></div></div></div></section><section id="architecture" className="section shell"><div className="booster-status-grid"><article><span className="mono">SOURCE + TEST STATUS</span><strong>USER TESTED</strong><p>The user reports testing this same source version. Results remain private and are not presented as a performance claim.</p></article><article><span className="mono">DECISION PIPELINE</span><strong>H1 → M15 → M5 → M1</strong><p>Context, structure, confirmation and execution are kept in separate deterministic stages.</p></article><article><span className="mono">CURRENT RUNTIME</span><Status>DEMO / UNAVAILABLE</Status><p>No broker, connector, license service or live market feed is configured here.</p></article><article><span className="mono">PERFORMANCE CLAIMS</span><Status tone="amber">NONE</Status><p>No profitability, win-rate, drawdown or backtest result is claimed.</p></article></div><div className="engine-pipeline"><span>DATA QUALITY</span><b>→</b><span>H1 BIAS</span><b>→</b><span>M15 STRUCTURE</span><b>→</b><span>M5 CONFIRMATION</span><b>→</b><span>M1 EXECUTION</span><b>→</b><span>RISK</span><b>→</b><span>ORDER RECONCILIATION</span></div></section><section className="section section--soft"><div className="shell"><SectionHeading label="IMPLEMENTED MODULE MAP" title="Every required surface has a named state." copy="The VTA layer exposes architecture without fabricating live account, position, execution, news or AI values." /><div className="booster-module-grid">{modules.map(([name, state], index) => <article key={name}><span className="step-number">{String(index + 1).padStart(2, '0')}</span><div><h3>{name}</h3><Status tone={state === 'SOURCE IMPLEMENTED' || state === 'RISK-FIRST' ? 'good' : state === 'VTA Web Trading Terminal TESTING REQUIRED' ? 'amber' : 'neutral'}>{state}</Status></div></article>)}</div></div></section><section className="section shell"><div className="booster-architecture"><article><span className="step-number">01</span><h3>Deterministic signal engine</h3><p>EMA20/50, RSI14, ADX14, DI+/DI−, ATR14, Bollinger width, closed-candle structure, liquidity, volume and candle quality feed weighted scoring.</p></article><article><span className="step-number">02</span><h3>Risk authority</h3><p>Conservative, balanced, aggressive and bounded custom profiles feed OrderCalcProfit sizing, drawdown, loss, margin, exposure, session, spread and position limits.</p></article><article><span className="step-number">03</span><h3>Protective management</h3><p>Every live order requires validated SL/TP. Break-even, ATR trailing, holding-time and optional partial-close controls manage existing positions locally.</p></article><article><span className="step-number">04</span><h3>Explainable audit</h3><p>Dashboard and structured logs expose regime, bias, structure, score, risk, block reason, retcode, ticket, license and execution reconciliation.</p></article></div></section><section className="section shell robot-console"><div><span className="eyebrow">CLIENT PORTAL MODULE</span><h2>Robot state is visible without pretending it is live.</h2><p>Open the Portal to inspect the same module map, with DEMO, SAFE MODE, BLOCKED, RVTA automationDY and LIVE states reserved for verified runtime conditions.</p><ArrowLink to="/web-terminal">View Portal robot state</ArrowLink></div><div className="robot-status-panel"><div><span>Source</span><Status tone="good">SOURCE PRESENT</Status></div><div><span>Runtime</span><Status>DEMO</Status></div><div><span>Account</span><Status>NOT CONNECTED</Status></div><div><span>Executions</span><Status>UNAVAILABLE</Status></div></div></section></PublicShell>;
 }
 
 function AnalysisPage() {
@@ -304,7 +374,7 @@ function FaqPage() {
   const items = [
     ['Is VTA connected to live market data?', 'No. This initial environment shows architecture and truthful unavailable states only.'],
     ['Can I place an order or make a deposit?', 'No. Order placement, account funding, withdrawals and custody are unavailable until legitimate operational integrations are connected.'],
-    ['Is Momentum Booster active?', 'No. The original robot file has not been supplied or inspected, so no implementation, compatibility, parameter or performance claim is made.'],
+    ['Is Momentum Booster active?', 'Momentum Booster is VTA’s proprietary automation experience within the VTA Web Trading Terminal. It remains in preview-only mode; no live broker, execution runtime or performance data is connected.'],
     ['Are the VTA Portal and Admin areas live?', 'They are protected product architectures. No client or operational records are created, displayed or simulated.'],
     ['Why are some modules marked Preview or Unavailable?', 'VTA deliberately distinguishes future-ready interface architecture from connected services and verified data.'],
   ];
@@ -314,19 +384,117 @@ function FaqPage() {
 function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   function handleSubmit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setSubmitted(true); }
-  return <PublicShell><PageIntro eyebrow="CONTACT VTA" title="Start with the right conversation." text="Use this form to prepare a product enquiry. Message delivery is not configured in this initial environment." /><section className="section shell contact-grid"><div><span className="eyebrow">PRODUCT & ACCESS</span><h2>Designed for a measured next step.</h2><p>VTA is rebuilding its product foundation. A live client support channel, operating desk and account onboarding are not connected here.</p><div className="contact-points"><div><MessageSquare/><span><b>General information</b><em>Response channel unavailable</em></span></div><div><ShieldCheck/><span><b>Account access</b><em>Requires approved identity integration</em></span></div><div><Bot/><span><b>Momentum Booster</b><em>Awaiting original robot file</em></span></div></div></div><form className="contact-form" onSubmit={handleSubmit}><label>Full name<input required name="name" autoComplete="name" /></label><label>Email address<input required type="email" name="email" autoComplete="email" /></label><label>Subject<select required name="subject" defaultValue=""><option value="" disabled>Select topic</option><option>Platform architecture</option><option>Client access</option><option>Momentum Booster</option><option>General information</option></select></label><label>Message<textarea required name="message" rows={5}/></label><button className="button" type="submit">Prepare enquiry <ArrowRight size={17}/></button>{submitted && <p className="form-note"><Check size={16}/> This enquiry is not sent because a VTA support channel is not connected.</p>}</form></section></PublicShell>;
+  return <PublicShell><PageIntro eyebrow="CONTACT VTA" title="Start with the right conversation." text="Use this form to prepare a product enquiry. Message delivery is not configured in this initial environment." /><section className="section shell contact-grid"><div><span className="eyebrow">PRODUCT & ACCESS</span><h2>Designed for a measured next step.</h2><p>VTA is rebuilding its product foundation. A live client support channel, operating desk and account onboarding are not connected here.</p><div className="contact-points"><div><MessageSquare/><span><b>General information</b><em>Response channel unavailable</em></span></div><div><ShieldCheck/><span><b>Account access</b><em>Requires approved identity integration</em></span></div><div><Bot/><span><b>Momentum Booster</b><em>Part of the VTA Web Trading Terminal · runtime unavailable</em></span></div></div></div><form className="contact-form" onSubmit={handleSubmit}><label>Full name<input required name="name" autoComplete="name" /></label><label>Email address<input required type="email" name="email" autoComplete="email" /></label><label>Subject<select required name="subject" defaultValue=""><option value="" disabled>Select topic</option><option>Platform architecture</option><option>Client access</option><option>Momentum Booster</option><option>General information</option></select></label><label>Message<textarea required name="message" rows={5}/></label><button className="button" type="submit">Prepare enquiry <ArrowRight size={17}/></button>{submitted && <p className="form-note"><Check size={16}/> This enquiry is not sent because a VTA support channel is not connected.</p>}</form></section></PublicShell>;
 }
 
-function AuthPage({ register = false }: { register?: boolean }) {
-  const title = register ? 'Access begins with verified identity.' : 'Client access is intentionally protected.';
-  const description = register ? 'Registration will become available through an approved VTA account and identity workflow.' : 'Use a genuine application identity flow when it is configured. No sample client credentials exist.';
-  return <PublicShell><section className="auth-page shell"><div className="auth-copy"><span className="eyebrow">{register ? 'CLIENT REGISTRATION' : 'CLIENT LOGIN'}</span><h1>{title}</h1><p>{description}</p><ul className="feature-list"><li><Check/> Server-side session architecture</li><li><Check/> Secure, HttpOnly cookie policy</li><li><Check/> No seeded account or administrator access</li></ul><Link className="text-link" to="/faq">Read access FAQ <ArrowRight size={15}/></Link></div><div className="auth-card"><Status>IDENTITY REQUIRED</Status><h2>{register ? 'Registration unavailable' : 'Sign in when identity is configured'}</h2><p>{register ? 'No onboarding workflow or customer record has been connected. VTA will not create a fictional application account.' : 'A verified VTA identity flow needs an explicitly configured public origin and provider callback.'}</p>{register ? <button className="button button--block" disabled>Create account unavailable <LockKeyhole size={16}/></button> : <a className="button button--block" href="/auth/login">Continue with VTA identity <ArrowRight size={16}/></a>}<div className="auth-divider"><span>or</span></div><Link className="button button--ghost button--block" to={register ? '/login' : '/register'}>{register ? 'Return to client login' : 'Explore registration architecture'}</Link><p className="auth-foot">No passwords, balances, account IDs or access roles are supplied in the frontend.</p></div></section></PublicShell>;
+type AuthView = 'choose' | 'signin' | 'signup' | 'forgot' | 'verification' | 'confirmation';
+
+function AuthPage({ register = false, inline = false, onDemoSignIn, onInlineModeChange }: { register?: boolean; inline?: boolean; onDemoSignIn: () => void; onInlineModeChange?: (mode: 'signin' | 'signup') => void }) {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [view, setView] = useState<AuthView>(inline ? register ? 'signup' : 'signin' : register ? 'signup' : 'signin');
+  const [error, setError] = useState('');
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [credentialCopyMessage, setCredentialCopyMessage] = useState('');
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const activeRegister = view === 'signup';
+
+  function changeView(next: AuthView) {
+    setError('');
+    setView(next);
+    if (inline && (next === 'signin' || next === 'signup')) onInlineModeChange?.(next);
+  }
+
+  async function copyPreviewCredentials() {
+    try {
+      await navigator.clipboard.writeText('Username: admin\nPassword: admin1234');
+      setCredentialCopyMessage(t('auth.credentialsCopied'));
+    } catch {
+      setCredentialCopyMessage(t('auth.copyUnavailable'));
+    }
+  }
+
+  function handleSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    const formData = new FormData(event.currentTarget);
+    const username = String(formData.get('username') ?? '').trim();
+    const password = String(formData.get('password') ?? '');
+    if (username !== 'admin' || password !== 'admin1234') {
+      setError(t('auth.signInError'));
+      return;
+    }
+    onDemoSignIn();
+    navigate('/portal', { replace: true });
+  }
+
+  function handleRegistration(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    const formData = new FormData(event.currentTarget);
+    const dateOfBirth = formData.get('dateOfBirth');
+    if (typeof dateOfBirth === 'string' && dateOfBirth > new Date().toISOString().slice(0, 10)) {
+      setError(t('auth.dateError'));
+      return;
+    }
+    if (formData.get('password') !== formData.get('confirmPassword')) {
+      setError(t('auth.passwordError'));
+      return;
+    }
+    setRegistrationComplete(true);
+  }
+
+  function handleSendCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const email = String(new FormData(event.currentTarget).get('email') ?? '').trim();
+    if (!email) return;
+    setVerificationEmail(email);
+    setVerificationMessage('');
+    changeView('verification');
+  }
+
+  function handleVerifyCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = String(new FormData(event.currentTarget).get('code') ?? '').trim();
+    if (code !== '246810') {
+      setError(t('auth.invalidDemoCode'));
+      return;
+    }
+    setError('');
+    setView('confirmation');
+  }
+
+  const card = <div className={`auth-card${activeRegister ? ' auth-card--register' : ''} auth-card--unified`}>
+    {view === 'choose' && <div className="auth-state auth-state--choice"><Status tone="amber">VTA / CLIENT ACCESS</Status><h2>{t('home.clientAccess')}</h2><p className="auth-form-intro">{t('home.chooseAccess')}</p><div className="home-access-choices"><button className="button button--block" type="button" onClick={() => changeView('signin')}>{t('auth.signIn')} <ArrowRight size={16}/></button><button className="button button--ghost button--block" type="button" onClick={() => changeView('signup')}>{t('auth.signUp')} <ArrowUpRight size={16}/></button></div></div>}
+    {activeRegister && <><Status tone="amber">{t('auth.previewRegistration')}</Status>{registrationComplete ? <div className="registration-confirmation" role="status"><span className="registration-confirmation-mark"><Check size={22}/></span><h2>{t('auth.accountCreated')}</h2><p>{t('auth.registrationBody')}</p><div className="auth-preview-note"><strong>{t('auth.registerNotConnected')}</strong><span>{t('auth.registerNotConnectedBody')}</span></div><button className="button button--block" type="button" onClick={() => { setRegistrationComplete(false); changeView('signin'); }}>{t('auth.signInAgain')} <ArrowRight size={16}/></button></div> : <>
+      <h2>{t('auth.signUpTitle')}</h2><p className="auth-form-intro">{t('auth.signUpIntro')}</p>
+      <form className="auth-form" onSubmit={handleRegistration}>
+        <div className="registration-grid"><label>{t('auth.firstName')}<input name="firstName" autoComplete="given-name" required /></label><label>{t('auth.lastName')}<input name="lastName" autoComplete="family-name" required /></label><label>{t('auth.emailAddress')}<input name="email" type="email" autoComplete="email" required /></label><label>{t('auth.dateOfBirth')}<input name="dateOfBirth" type="date" autoComplete="bday" required /></label><label>{t('auth.phone')}<input name="phone" type="tel" autoComplete="tel" required /></label><label>{t('auth.country')}<select name="country" autoComplete="country-name" defaultValue="" required><option value="" disabled>{t('auth.selectCountry')}</option><option>Australia</option><option>Canada</option><option>France</option><option>Germany</option><option>India</option><option>Singapore</option><option>United Kingdom</option><option>United States</option><option>Other</option></select></label><label className="registration-field-wide">{t('auth.address')}<input name="address" autoComplete="street-address" required /></label><label>{t('auth.username')}<input name="username" autoComplete="username" minLength={3} required /></label><label>{t('auth.password')}<input name="password" type="password" autoComplete="new-password" minLength={8} required /></label><label className="registration-field-wide">{t('auth.confirmPassword')}<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required /></label></div>
+        <fieldset className="registration-consents"><legend>{t('auth.acknowledgements')}</legend><label><input name="terms" type="checkbox" required /><span>{t('auth.acceptTerms')}</span></label><label><input name="privacy" type="checkbox" required /><span>{t('auth.acceptPrivacy')}</span></label><label><input name="riskDisclosure" type="checkbox" required /><span>{t('auth.acceptRisk')}</span></label></fieldset>
+        {error && <p className="auth-error" role="alert">{error}</p>}<button className="button button--block" type="submit">{t('auth.reviewRegistration')} <ArrowRight size={16}/></button>
+      </form><p className="auth-foot">{t('auth.registrationFoot')}</p><button className="auth-secondary-link auth-state-back" type="button" onClick={() => changeView('signin')}>{t('auth.backToSignIn')}</button>
+    </>}</>}
+    {view === 'signin' && <><Status tone="amber">{t('auth.previewAccess')}</Status><h2>{t('auth.signInTitle')}</h2><p className="auth-form-intro">{t('auth.demoIntro')}</p>
+      <div className="shareable-preview-login" aria-label={t('auth.previewCredentials')}><div className="shareable-preview-heading"><strong>{t('auth.previewCredentials')}</strong><button type="button" onClick={copyPreviewCredentials}>{t('auth.copyDetails')}</button></div><div className="shareable-preview-values"><div><span>USERNAME</span><code>admin</code></div><div><span>PASSWORD</span><code>admin1234</code></div></div><p>{t('auth.previewCredentialsNote')}</p>{credentialCopyMessage && <span className="shareable-preview-copy-status" role="status">{credentialCopyMessage}</span>}</div>
+      <form className="auth-form" onSubmit={handleSignIn} noValidate><label>{t('auth.usernameOrEmail')}<input name="username" autoComplete="username" defaultValue="admin" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label><label>{t('auth.password')}<input name="password" type="password" autoComplete="current-password" defaultValue="admin1234" required aria-describedby={error ? 'sign-in-error' : undefined} aria-invalid={Boolean(error)} /></label>{error && <p id="sign-in-error" className="auth-error" role="alert">{error}</p>}<button className="button button--block" type="submit">{t('auth.signIn')} <ArrowRight size={16}/></button></form>
+      <div className="auth-inline-actions"><button className="auth-text-button" type="button" onClick={() => changeView('forgot')}>{t('auth.forgotPassword')}</button>{inline ? <button className="auth-text-button" type="button" onClick={() => changeView('signup')}>{t('auth.newToVta')}</button> : <Link className="auth-text-button" to="/register">{t('auth.newToVta')}</Link>}</div>
+      <div className="auth-preview-note"><strong>{t('auth.demoSessionOnly')}</strong><span>{t('auth.demoSessionNotice')}</span></div>
+      {!inline && <><div className="auth-divider"><span>{t('auth.productionAccess')}</span></div><a className="button button--ghost button--block" href="/auth/login">{t('auth.productionIdentity')} <ArrowRight size={16}/></a><p className="auth-foot">{t('auth.productionFoot')}</p></>}
+    </>}
+    {view === 'forgot' && <div className="auth-state"><Status tone="amber">{t('auth.demoVerification')}</Status><h2>{t('auth.recoveryTitle')}</h2><p className="auth-form-intro">{t('auth.enterAddress')}</p><form className="auth-form" onSubmit={handleSendCode}><label>{t('auth.usernameOrEmail')}<input name="email" type="text" autoComplete="username" required /></label><button className="button button--block" type="submit">{t('auth.sendCode')} <ArrowRight size={16}/></button></form><div className="auth-preview-note"><strong>{t('auth.noEmailSent')}</strong><span>No message, code delivery, or account change is performed in preview mode.</span></div><button className="auth-text-button auth-state-back" type="button" onClick={() => changeView('signin')}>{t('auth.backToSignIn')}</button></div>}
+    {view === 'verification' && <div className="auth-state"><Status tone="amber">{t('auth.demoVerification')}</Status><h2>{t('auth.verificationTitle')}</h2><p className="auth-form-intro">{t('auth.codeSent')} Address entered: <strong>{verificationEmail}</strong></p><form className="auth-form" onSubmit={handleVerifyCode}><label>{t('auth.confirmationCode')}<input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} placeholder="246810" required /></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="button button--block" type="submit">{t('auth.verifyCode')} <ArrowRight size={16}/></button></form><div className="auth-preview-note"><strong>{t('auth.noEmailSent')}</strong><span>Preview code: <code>246810</code> · This is not delivered to an email inbox.</span></div><div className="auth-inline-actions"><button className="auth-text-button" type="button" onClick={() => setVerificationMessage(t('auth.codeResent'))}>{t('auth.resendCode')}</button><button className="auth-text-button" type="button" onClick={() => changeView('signin')}>{t('auth.backToSignIn')}</button></div>{verificationMessage && <p className="auth-success" role="status">{verificationMessage}</p>}</div>}
+    {view === 'confirmation' && <div className="registration-confirmation" role="status"><span className="registration-confirmation-mark"><Check size={22}/></span><Status tone="amber">{t('auth.confirmationTitle')}</Status><h2>{t('auth.confirmationTitle')}</h2><p>{t('auth.codeVerified')} {t('auth.noEmailSent')}</p><button className="button button--block" type="button" onClick={() => changeView('signin')}>{t('auth.backToSignIn')} <ArrowRight size={16}/></button></div>}
+  </div>;
+
+  if (inline) return <div className="inline-auth-wrap" key={view}>{card}</div>;
+  return <PublicShell><section className={`auth-page shell${activeRegister ? ' auth-page--register' : ''}`}><div className="auth-copy"><span className="eyebrow">{activeRegister ? t('auth.clientRegistration') : t('auth.clientLogin')}</span><h1>{activeRegister ? t('auth.authHeroSignUp') : t('auth.authHeroSignIn')}</h1><p>{activeRegister ? t('auth.authDescriptionSignUp') : t('auth.authDescriptionSignIn')}</p><ul className="feature-list"><li><Check/> {t('auth.featureIdentity')}</li><li><Check/> {t('auth.featureSession')}</li><li><Check/> {t('auth.featureFinancial')}</li></ul><Link className="text-link" to="/faq">{t('auth.accessFaq')} <ArrowRight size={15}/></Link></div>{card}</section></PublicShell>;
 }
 
-function PortalRoute() {
+function PortalRoute({ isDemoSession, onSignOut }: { isDemoSession: boolean; onSignOut: () => Promise<void> }) {
   const location = useLocation();
-  const known = portalNav.some((item) => item.to === location.pathname);
-  return known ? <PortalPage /> : <NotFound />;
+  const known = portalNav.some((item) => item.to === location.pathname) || portalRouteExtras.some((item) => item.to === location.pathname) || location.pathname === '/portal/robot/subscription';
+  return known ? <PortalPage isDemoSession={isDemoSession} onSignOut={onSignOut} /> : <NotFound />;
 }
 
 function AdminRoute() {
@@ -336,18 +504,53 @@ function AdminRoute() {
 }
 
 function WorkspaceNavigation({ sections, onNavigate, label }: { sections: NavigationSection[]; onNavigate: () => void; label: string }) {
-  return <nav aria-label={label}>{sections.map((section) => <div className="sidebar-nav-section" key={section.label}><span className="sidebar-nav-label">{section.label}</span>{section.items.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} end={to === '/portal' || to === '/admin'} onClick={onNavigate}><Icon size={17}/><span>{label}</span></NavLink>)}</div>)}</nav>;
+  return <nav aria-label={label}>{sections.map((section) => <div className="sidebar-nav-section" key={section.label}><span className="sidebar-nav-label">{section.label}</span>{section.items.map(({ label, to, icon: Icon }) => <NavLink key={to} to={to} end={to === '/portal' || to === '/portal/accounts/new' || to === '/admin'} onClick={onNavigate}><Icon size={17}/><span>{label}</span></NavLink>)}</div>)}</nav>;
 }
 
-function PortalPage() {
+function PortalPage({ isDemoSession, onSignOut }: { isDemoSession: boolean; onSignOut: () => Promise<void> }) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const active = portalNav.find((item) => item.to === location.pathname) || portalNav[0];
-  return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status>NOT CONNECTED</Status><span>Identity required</span></div></aside><main className="app-main"><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
+  useEffect(() => setOpen(false), [location.pathname]);
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    setSignOutError('');
+    try {
+      await onSignOut();
+    } catch {
+      setSignOutError('Could not sign out. Please try again.');
+      setIsSigningOut(false);
+    }
+  };
+  const active = portalNav.find((item) => item.to === location.pathname)
+    || portalRouteExtras.find((item) => item.to === location.pathname)
+    || (location.pathname.startsWith('/portal/robot/') ? portalNav.find((item) => item.to === '/portal/robot') : undefined)
+    || portalNav[0];
+  return <div className="app-shell portal-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close portal navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar ${open ? 'app-sidebar--open' : ''}`}><Brand compact to="/portal"/><div className="sidebar-caption">CLIENT PORTAL</div><WorkspaceNavigation sections={portalSections} onNavigate={() => setOpen(false)} label="Portal navigation"/><div className="sidebar-footer"><Status tone={isDemoSession ? 'amber' : 'neutral'}>{isDemoSession ? 'DEMO / PREVIEW' : 'NOT CONNECTED'}</Status><span>{isDemoSession ? 'Frontend-only preview session' : 'Identity required'}</span>{signOutError && <span className="sidebar-signout-error" role="alert">{signOutError}</span>}<button className="sidebar-logout" type="button" onClick={() => void handleSignOut()} disabled={isSigningOut} aria-busy={isSigningOut}><LogOut size={15} aria-hidden="true"/><span>{isSigningOut ? 'Signing out…' : 'Log out'}</span></button></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="portal" navigationOpen={open} isDemoSession={isDemoSession}/><div className="app-content"><PortalContent active={active.label} path={location.pathname}/></div></main></div>;
 }
 
-function AppTopbar({ title, onMenu, kind, navigationOpen }: { title: string; onMenu: () => void; kind: 'portal' | 'admin'; navigationOpen: boolean }) {
-  return <header className="app-topbar"><button className="app-menu" onClick={onMenu} aria-label={navigationOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navigationOpen} aria-controls="workspace-sidebar"><PanelLeft size={20}/></button><div><span className="mono">{kind === 'portal' ? 'CLIENT PORTAL' : 'VTA OPERATIONS'}</span><h1>{title}</h1></div><div className="topbar-actions"><button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div></div></header>;
+function AppTopbar({ title, onMenu, kind, navigationOpen, isDemoSession = false }: { title: string; onMenu: () => void; kind: 'portal' | 'admin'; navigationOpen: boolean; isDemoSession?: boolean }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dashboardTo = kind === 'portal' ? '/portal' : '/admin';
+  const dashboardLabel = kind === 'portal' ? 'Client dashboard' : 'Operations dashboard';
+  const goBack = () => {
+    const historyIndex = window.history.state?.idx;
+    if (location.pathname === dashboardTo) navigate('/');
+    else if (typeof historyIndex === 'number' && historyIndex > 0) navigate(-1);
+    else navigate(dashboardTo);
+  };
+  return <header className="app-topbar">
+    <button className="app-menu" type="button" onClick={onMenu} aria-label={navigationOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={navigationOpen} aria-controls="workspace-sidebar"><PanelLeft size={20}/></button>
+    <button className="workspace-back" type="button" onClick={goBack} aria-label="Go back"><ArrowLeft size={16}/><span>Back</span></button>
+    <div className="workspace-heading">
+      <nav className="workspace-breadcrumbs" aria-label="Breadcrumb"><Link to="/"><Home size={13} aria-hidden="true"/>VTA Home</Link><ChevronRight size={13} aria-hidden="true"/><Link to={dashboardTo}>{dashboardLabel}</Link><ChevronRight size={13} aria-hidden="true"/><span aria-current="page">{title}</span></nav>
+      <span className="mono">{kind === 'portal' ? 'CLIENT PORTAL' : 'VTA OPERATIONS'}</span><h1>{title}</h1>
+    </div>
+    <div className="topbar-actions">{kind === 'portal' && <Link className="portal-home-link" to="/" aria-label="Return to VTA public homepage"><Home size={15}/><span>VTA Home</span></Link>}<button aria-label="Notifications" className="icon-button"><Bell size={18}/><i/></button><div className="identity-chip"><UserRound size={16}/><span>{kind === 'portal' && isDemoSession ? 'DEMO / PREVIEW session' : kind === 'portal' ? 'Client access required' : 'Admin authorization required'}</span></div></div>
+  </header>;
 }
 
 function PaymentLogo({ name, label }: { name: 'tether' | 'bitcoin' | 'ethereum' | 'binance' | 'tron' | 'visa' | 'mastercard'; label: string }) {
@@ -378,14 +581,14 @@ function InstitutionalDashboard({ portal = false }: { portal?: boolean }) {
   const returns: Record<DashboardTimeframe, string> = { '1D': '+0.42%', '1W': '+1.18%', '1M': '+2.54%', '3M': '+6.18%', '6M': '+10.80%', '1Y': '+18.40%', ALL: '+24.10%' };
   const positions = [['EUR/USD', 'Buy 0.40', '1.0821', '1.0842', '+$84.20', 'OPEN'], ['XAU/USD', 'Sell 0.12', '2,342.8', '2,338.4', '+$52.80', 'OPEN'], ['US 500', 'Buy 0.20', '5,214.4', '5,208.1', '-$18.40', 'OPEN']];
   const orders = [['EUR/USD', 'Limit Buy', '1.0790', '0.40', 'PENDING'], ['BTC/USD', 'Market', '—', '0.08', 'DISABLED']];
-  return <div className="command-center"><div className="command-center-head"><div><span className="eyebrow">{portal ? 'CLIENT PORTAL / HOME COMMAND CENTER' : 'VTA DEMO DESK / HOME'}</span><h2>Good morning, Trader.</h2><p>Account context, performance, exposure and platform readiness in one operating view.</p></div><div className="account-context"><button type="button" className="account-selector" title="Choose active paper account" aria-label={`Active account: ${account}. Open account selector`} onClick={() => setAccountOpen(!accountOpen)}><span className="account-selector-mark"><img src="/logo-mark.svg" alt="" aria-hidden="true"/></span><span><small>ACTIVE ACCOUNT</small><strong>{account}</strong><em>Paper trading · USD</em></span><ChevronDown size={16}/></button>{accountOpen && <div className="account-menu"><button type="button" title="Switch to primary paper account" onClick={() => { setAccount('VTA-PAPER-001'); setAccountOpen(false); }}>VTA-PAPER-001 <small>Primary paper account</small></button><button type="button" title="Switch to research sandbox" onClick={() => { setAccount('VTA-DEMO-002'); setAccountOpen(false); }}>VTA-DEMO-002 <small>Research sandbox</small></button></div>}<Status tone="amber">DEMO / NOT CONNECTED</Status></div></div><div className="command-kpi-rail"><div><span>Balance</span><strong>$25,000.00</strong><small>paper ledger · USD</small></div><div><span>Equity</span><strong>$24,850.50</strong><small className="demo-positive">-$149.50 floating</small></div><div><span>Available margin</span><strong>$21,605.00</strong><small>86.9% available</small></div><div><span>Margin level</span><strong>765.8%</strong><small className="demo-positive">healthy · synthetic</small></div><div><span>Unrealized P&amp;L</span><strong className="demo-positive">+$118.60</strong><small>3 open positions</small></div><div><span>Today’s P&amp;L</span><strong className="demo-positive">+$84.20</strong><small>{timeframe} return {returns[timeframe]}</small></div></div><div className="quick-action-strip"><span className="mono">QUICK ACTIONS</span><Link to={portal ? '/portal/deposit' : '/demo'}><Plus size={14}/> Deposit</Link><Link to={portal ? '/portal/withdraw' : '/demo'}><ArrowUpRight size={14}/> Withdraw</Link><Link to={portal ? '/portal/terminal' : '/web-terminal'}><LineChart size={14}/> Trade</Link><Link to={portal ? '/portal/positions' : '/demo'}><BriefcaseBusiness size={14}/> View positions</Link><Link to={portal ? '/portal/robot' : '/robots/momentum-booster'}><Bot size={14}/> Momentum Booster</Link></div><div className="command-primary-grid"><section className="command-panel command-panel--performance"><div className="command-panel-head"><div><span className="mono">PERFORMANCE / EQUITY CURVE</span><h3>Account performance</h3></div><div className="dashboard-periods"><Status>SIMULATED</Status>{(['1D','1W','1M','3M','6M','1Y','ALL'] as DashboardTimeframe[]).map((item) => <button type="button" key={item} className={timeframe === item ? 'active' : ''} onClick={() => setTimeframe(item)}>{item}</button>)}</div></div><InstitutionalChart timeframe={timeframe}/><div className="chart-summary"><span>Net P/L <b className="demo-positive">+$600.50</b></span><span>Return <b className="demo-positive">{returns[timeframe]}</b></span><span>Drawdown <b>1.8%</b></span><span>Volatility <b>LOW</b></span></div></section><aside className="command-side-stack"><section className="command-panel compact-panel"><div className="command-panel-head"><div><span className="mono">ACTION REQUIRED</span><h3>Alerts</h3></div><Status tone="amber">2 OPEN</Status></div><div className="alert-list"><Link to={portal ? '/portal/security' : '/demo'}><ShieldCheck size={15}/><span><strong>Identity not connected</strong><small>Complete verification before live access.</small></span><ArrowRight size={14}/></Link><Link to={portal ? '/portal/robot' : '/robots/momentum-booster'}><Bot size={15}/><span><strong>Momentum Booster is preview-only</strong><small>Runtime and execution are unavailable.</small></span><ArrowRight size={14}/></Link></div></section><section className="command-panel compact-panel"><div className="command-panel-head"><div><span className="mono">MARKET SNAPSHOT</span><h3>Context</h3></div><Status>NO LIVE DATA</Status></div><div className="market-snapshot"><div><span>EUR/USD</span><strong>1.0842</strong><small className="demo-positive">+0.42% synthetic</small></div><div><span>XAU/USD</span><strong>2,338.4</strong><small className="text-amber">-0.18% synthetic</small></div><div><span>BTC/USD</span><strong>—</strong><small>feed unavailable</small></div></div></section></aside></div><div className="command-secondary-grid"><section className="command-panel table-panel"><div className="command-panel-head"><div><span className="mono">TRADING ACTIVITY</span><h3>Open positions</h3></div><Link className="text-link" to={portal ? '/portal/positions' : '/demo'}>View all <ArrowRight size={14}/></Link></div><div className="data-table data-table--positions"><div className="data-table-head"><span>Instrument</span><span>Side / size</span><span>Entry</span><span>Mark</span><span>P/L</span><span>Status</span></div>{positions.map((row) => <button type="button" className={`data-table-row ${selectedRow === row[0] ? 'selected' : ''}`} title={`View synthetic position details for ${row[0]}`} aria-label={`View synthetic position details for ${row[0]}`} key={row[0]} onClick={() => setSelectedRow(row[0])}>{row.map((value, index) => <span key={index} className={index === 4 ? (value.startsWith('+') ? 'demo-positive' : 'text-amber') : ''}>{value}</span>)}</button>)}{selectedRow && <div className="row-detail"><strong>{selectedRow}</strong><span>Details are synthetic. Broker position data is not connected.</span><button type="button" onClick={() => setSelectedRow('')}>Dismiss</button></div>}</div></section><section className="command-panel table-panel"><div className="command-panel-head"><div><span className="mono">ORDER BOOK</span><h3>Orders</h3></div><Link className="text-link" to={portal ? '/portal/orders' : '/demo'}>Open orders <ArrowRight size={14}/></Link></div><div className="data-table"><div className="data-table-head"><span>Instrument</span><span>Type</span><span>Price</span><span>Size</span><span>Status</span></div>{orders.map((row) => <button type="button" className="data-table-row" title={`View synthetic order details for ${row[0]}`} aria-label={`View synthetic order details for ${row[0]}`} key={row[0]} onClick={() => setSelectedRow(row[0])}>{row.map((value, index) => <span key={index} className={value === 'PENDING' ? 'text-amber' : value === 'DISABLED' ? 'text-muted' : ''}>{value}</span>)}</button>)}</div></section></div><div className="command-bottom-grid"><section className="command-panel activity-panel"><div className="command-panel-head"><div><span className="mono">RECENT ACTIVITY</span><h3>Latest account events</h3></div><Link className="text-link" to={portal ? '/portal/transactions' : '/demo'}>View ledger <ArrowRight size={14}/></Link></div><div className="activity-rows">{[['09:42','Deposit review','Paper USD ledger','+$2,500.00','good'],['09:18','EUR/USD position','Buy 0.40 · simulated','+$184.20','good'],['Yesterday','Withdrawal review','No destination connected','-$1,200.00','amber'],['Sep 28','Momentum Booster','Signal engine · 78 / 100','PREVIEW','neutral']].map(([time, title, meta, value, tone]) => <div key={time + title}><time>{time}</time><span className={`activity-mark activity-mark--${tone}`}><Activity size={14}/></span><span><strong>{title}</strong><small>{meta}</small></span><b className={tone === 'good' ? 'demo-positive' : tone === 'amber' ? 'text-amber' : ''}>{value}</b></div>)}</div></section><section className="command-panel booster-panel"><div className="command-panel-head"><div><span className="mono">AUTOMATION / PRODUCT MODULE</span><h3>Momentum Booster</h3></div><Status tone="amber">PREVIEW</Status></div><div className="booster-feature"><div className="booster-visual" aria-label="Momentum Booster robot"><div className="booster-visual-grid"/><img src="/assets/branding/momentum-booster-robot.png" alt="Momentum Booster robot"/><span className="booster-visual-caption">VTA / ADVANCED V1</span></div><div className="booster-feature-body"><div className="booster-feature-title"><div><span className="eyebrow">MOMENTUM BOOSTER EA</span><h4>Advanced V1</h4></div><span className="booster-state-dot"><i/> INACTIVE</span></div><p>A rules-based momentum engine with staged context, structure, confirmation and risk controls. The EA source is present in this project, but no broker runtime or performance feed is connected.</p><div className="booster-account-line"><span><small>ASSOCIATED ACCOUNT</small><strong>{account}</strong></span><Status>NOT CONNECTED</Status></div><div className="booster-feature-actions"><Link className="button button--small" title="Open Momentum Booster module" to={portal ? '/portal/robot' : '/robots/momentum-booster'}>Open module <ArrowRight size={14}/></Link><a className="button button--small button--ghost" href="/Momentum_Booster_EA_Advanced_V1.mq5" download>View EA source <FileText size={14}/></a></div></div></div><div className="booster-feature-metrics"><span><small>Robot status</small><b>DEMO / INACTIVE</b></span><span><small>Performance</small><b>NOT AVAILABLE</b></span><span><small>Subscription</small><b>LOCAL GATE</b></span><span><small>Last activity</small><b>SEP 28</b></span><span><small>Connection</small><b>NOT CONNECTED</b></span></div><div className="booster-feature-disclosure"><Info size={14}/><span>Reference visual supplied for Momentum Booster. Execution and performance remain unavailable until an approved connector is configured.</span></div></section></div><div className="command-footer-rail"><span><ShieldCheck size={14}/> Session protected</span><span><Database size={14}/> Local synthetic dataset</span><span><LockKeyhole size={14}/> Broker path blocked</span><span><Bot size={14}/> No live automation</span></div><section className="open-account-rail"><div className="open-account-copy"><span className="eyebrow">PLATFORM ACCESS</span><h3>Choose your workspace</h3><p>Explore the available platform previews. Account opening and live connectivity require verified onboarding.</p></div><div className="platform-selector" role="tablist" aria-label="Trading platform options"><button type="button" title="Select VTA Web Terminal" aria-label="Select VTA Web Terminal" className={platformChoice === 'web' ? 'platform-option active' : 'platform-option'} onClick={() => setPlatformChoice('web')}><span className="platform-mark platform-mark--vta"><img src="/logo-mark.svg" alt="" aria-hidden="true"/></span><span><strong>VTA Web Terminal</strong><small>Browser-native workspace</small></span><ArrowUpRight size={14}/></button><button type="button" title="Select MetaTrader 4" aria-label="Select MetaTrader 4" className={platformChoice === 'mt4' ? 'platform-option active' : 'platform-option'} onClick={() => setPlatformChoice('mt4')}><span className="platform-mark platform-mark--mt"><LineChart size={16} aria-hidden="true"/></span><span><strong>MetaTrader 4</strong><small>Classic FX platform</small></span><ArrowUpRight size={14}/></button><button type="button" title="Select MetaTrader 5" aria-label="Select MetaTrader 5" className={platformChoice === 'mt5' ? 'platform-option active' : 'platform-option'} onClick={() => setPlatformChoice('mt5')}><span className="platform-mark platform-mark--mt"><img src="/assets/branding/metatrader5.svg" alt="MetaTrader 5"/></span><span><strong>MetaTrader 5</strong><small>Multi-asset platform</small></span><ArrowUpRight size={14}/></button></div><div className="open-account-action"><span><b>{platformChoice === 'web' ? 'VTA Web Terminal' : platformChoice === 'mt4' ? 'MetaTrader 4' : 'MetaTrader 5'}</b><small>Selected platform · demo onboarding only</small></span><Link className="button button--small" to={platformChoice === 'web' ? (portal ? '/portal/terminal' : '/web-terminal') : platformChoice === 'mt4' ? '/mt4' : '/mt5'}>Continue <ArrowRight size={14}/></Link></div></section></div>;
+  return <div className="command-center"><div className="command-center-head"><div><span className="eyebrow">{portal ? 'CLIENT PORTAL / HOME COMMAND CENTER' : 'VTA DEMO DESK / HOME'}</span><h2>Your portfolio, at a glance.</h2><p>Illustrative paper-account figures demonstrate the command-center workflow. No client records, broker session or live financial data are connected.</p></div><div className="account-context"><button type="button" className="account-selector" title="Choose active paper account" aria-label={`Active account: ${account}. Open account selector`} onClick={() => setAccountOpen(!accountOpen)}><span className="account-selector-mark"><img src="/logo-mark.svg" alt="" aria-hidden="true"/></span><span><small>ACTIVE ACCOUNT</small><strong>{account}</strong><em>Paper trading · USD</em></span><ChevronDown size={16}/></button>{accountOpen && <div className="account-menu"><button type="button" title="Switch to primary paper account" onClick={() => { setAccount('VTA-PAPER-001'); setAccountOpen(false); }}>VTA-PAPER-001 <small>Primary paper account</small></button><button type="button" title="Switch to research sandbox" onClick={() => { setAccount('VTA-DEMO-002'); setAccountOpen(false); }}>VTA-DEMO-002 <small>Research sandbox</small></button></div>}<Status tone="amber">DEMO / NOT CONNECTED</Status></div></div><div className="command-kpi-rail"><div><span>Balance</span><strong>$25,000.00</strong><small>paper ledger · USD</small></div><div><span>Equity</span><strong>$24,850.50</strong><small className="demo-positive">-$149.50 floating</small></div><div><span>Available margin</span><strong>$21,605.00</strong><small>86.9% available</small></div><div><span>Margin level</span><strong>765.8%</strong><small className="demo-positive">healthy · synthetic</small></div><div><span>Unrealized P&amp;L</span><strong className="demo-positive">+$118.60</strong><small>3 open positions</small></div><div><span>Today’s P&amp;L</span><strong className="demo-positive">+$84.20</strong><small>{timeframe} return {returns[timeframe]}</small></div></div><div className="quick-action-strip"><span className="mono">QUICK ACTIONS</span><Link to={portal ? '/portal/deposit' : '/demo'}><Plus size={14}/> Deposit</Link><Link to={portal ? '/portal/withdraw' : '/demo'}><ArrowUpRight size={14}/> Withdraw</Link><Link to={portal ? '/portal/terminal' : '/web-terminal'}><LineChart size={14}/> Trade</Link><Link to={portal ? '/portal/positions' : '/demo'}><BriefcaseBusiness size={14}/> View positions</Link><Link to={portal ? '/portal/robot' : '/robots/momentum-booster'}><Bot size={14}/> VTA Web Trading Terminal</Link></div><div className="command-primary-grid"><section className="command-panel command-panel--performance"><div className="command-panel-head"><div><span className="mono">PERFORMANCE / EQUITY CURVE</span><h3>Account performance</h3></div><div className="dashboard-periods"><Status>SIMULATED</Status>{(['1D','1W','1M','3M','6M','1Y','ALL'] as DashboardTimeframe[]).map((item) => <button type="button" key={item} className={timeframe === item ? 'active' : ''} onClick={() => setTimeframe(item)}>{item}</button>)}</div></div><InstitutionalChart timeframe={timeframe}/><div className="chart-summary"><span>Net P/L <b className="demo-positive">+$600.50</b></span><span>Return <b className="demo-positive">{returns[timeframe]}</b></span><span>Drawdown <b>1.8%</b></span><span>Volatility <b>LOW</b></span></div></section><aside className="command-side-stack"><section className="command-panel compact-panel"><div className="command-panel-head"><div><span className="mono">ACTION REQUIRED</span><h3>Alerts</h3></div><Status tone="amber">2 OPEN</Status></div><div className="alert-list"><Link to={portal ? '/portal/security' : '/demo'}><ShieldCheck size={15}/><span><strong>Identity not connected</strong><small>Complete verification before live access.</small></span><ArrowRight size={14}/></Link><Link to={portal ? '/portal/robot' : '/robots/momentum-booster'}><Bot size={15}/><span><strong>VTA Web Trading Terminal is preview-only</strong><small>Broker runtime and order execution are unavailable from this preview.</small></span><ArrowRight size={14}/></Link></div></section><section className="command-panel compact-panel"><div className="command-panel-head"><div><span className="mono">MARKET SNAPSHOT</span><h3>Context</h3></div><Status>NO LIVE DATA</Status></div><div className="market-snapshot"><div><span>EUR/USD</span><strong>1.0842</strong><small className="demo-positive">+0.42% synthetic</small></div><div><span>XAU/USD</span><strong>2,338.4</strong><small className="text-amber">-0.18% synthetic</small></div><div><span>BTC/USD</span><strong>—</strong><small>feed unavailable</small></div></div></section></aside></div><div className="command-secondary-grid"><section className="command-panel table-panel"><div className="command-panel-head"><div><span className="mono">TRADING ACTIVITY</span><h3>Open positions</h3></div><Link className="text-link" to={portal ? '/portal/positions' : '/demo'}>View all <ArrowRight size={14}/></Link></div><div className="data-table data-table--positions"><div className="data-table-head"><span>Instrument</span><span>Side / size</span><span>Entry</span><span>Mark</span><span>P/L</span><span>Status</span></div>{positions.map((row) => <button type="button" className={`data-table-row ${selectedRow === row[0] ? 'selected' : ''}`} title={`View synthetic position details for ${row[0]}`} aria-label={`View synthetic position details for ${row[0]}`} key={row[0]} onClick={() => setSelectedRow(row[0])}>{row.map((value, index) => <span key={index} className={index === 4 ? (value.startsWith('+') ? 'demo-positive' : 'text-amber') : ''}>{value}</span>)}</button>)}{selectedRow && <div className="row-detail"><strong>{selectedRow}</strong><span>Details are synthetic. Broker position data is not connected.</span><button type="button" onClick={() => setSelectedRow('')}>Dismiss</button></div>}</div></section><section className="command-panel table-panel"><div className="command-panel-head"><div><span className="mono">ORDER BOOK</span><h3>Orders</h3></div><Link className="text-link" to={portal ? '/portal/orders' : '/demo'}>Open orders <ArrowRight size={14}/></Link></div><div className="data-table"><div className="data-table-head"><span>Instrument</span><span>Type</span><span>Price</span><span>Size</span><span>Status</span></div>{orders.map((row) => <button type="button" className="data-table-row" title={`View synthetic order details for ${row[0]}`} aria-label={`View synthetic order details for ${row[0]}`} key={row[0]} onClick={() => setSelectedRow(row[0])}>{row.map((value, index) => <span key={index} className={value === 'PENDING' ? 'text-amber' : value === 'DISABLED' ? 'text-muted' : ''}>{value}</span>)}</button>)}</div></section></div><div className="command-bottom-grid"><section className="command-panel activity-panel"><div className="command-panel-head"><div><span className="mono">RECENT ACTIVITY</span><h3>Latest account events</h3></div><Link className="text-link" to={portal ? '/portal/transactions' : '/demo'}>View ledger <ArrowRight size={14}/></Link></div><div className="activity-rows">{[['09:42','Deposit review','Paper USD ledger','+$2,500.00','good'],['09:18','EUR/USD position','Buy 0.40 · simulated','+$184.20','good'],['Yesterday','Withdrawal review','No destination connected','-$1,200.00','amber'],['Sep 28','Momentum Booster','Signal engine · 78 / 100','PREVIEW','neutral']].map(([time, title, meta, value, tone]) => <div key={time + title}><time>{time}</time><span className={`activity-mark activity-mark--${tone}`}><Activity size={14}/></span><span><strong>{title}</strong><small>{meta}</small></span><b className={tone === 'good' ? 'demo-positive' : tone === 'amber' ? 'text-amber' : ''}>{value}</b></div>)}</div></section><section className="command-panel booster-panel"><div className="command-panel-head"><div><span className="mono">VTA WEB TRADING TERMINAL / MOMENTUM BOOSTER</span><h3>Momentum Booster</h3></div><Status tone="amber">PREVIEW</Status></div><div className="booster-feature"><div className="booster-visual" aria-label="Momentum Booster robot"><div className="booster-visual-grid"/><img src="/assets/branding/momentum-booster-robot.png" alt="Momentum Booster robot"/><span className="booster-visual-caption">VTA / ADVANCED V1</span></div><div className="booster-feature-body"><div className="booster-feature-title"><div><span className="eyebrow">VTA WEB TRADING TERMINAL / MOMENTUM BOOSTER</span><h4>Advanced V1</h4></div><span className="booster-state-dot"><i/> INACTIVE</span></div><p>A rules-based momentum engine with staged context, structure, confirmation and risk controls. The Momentum Booster source is present in this project, but no broker runtime or performance feed is connected.</p><div className="booster-account-line"><span><small>ASSOCIATED ACCOUNT</small><strong>{account}</strong></span><Status>NOT CONNECTED</Status></div><div className="booster-feature-actions"><Link className="button button--small" title="Open Momentum Booster module" to={portal ? '/portal/robot' : '/robots/momentum-booster'}>Open VTA Web Trading Terminal <ArrowRight size={14}/></Link><a className="button button--small button--ghost" href="/Momentum_Booster_EA_Advanced_V1.mq5" download>View Momentum Booster source <FileText size={14}/></a></div></div></div><div className="booster-feature-metrics"><span><small>Robot status</small><b>DEMO / INACTIVE</b></span><span><small>Performance</small><b>NOT AVAILABLE</b></span><span><small>Subscription</small><b>LOCAL GATE</b></span><span><small>Last activity</small><b>SEP 28</b></span><span><small>Connection</small><b>NOT CONNECTED</b></span></div><div className="booster-feature-disclosure"><Info size={14}/><span>Reference visual supplied for Momentum Booster. Execution and performance remain unavailable until an approved connector is configured.</span></div></section></div><div className="command-footer-rail"><span><ShieldCheck size={14}/> Session protected</span><span><Database size={14}/> Local synthetic dataset</span><span><LockKeyhole size={14}/> Broker path blocked</span><span><Bot size={14}/> No live automation</span></div><section className="open-account-rail"><div className="open-account-copy"><span className="eyebrow">PLATFORM ACCESS</span><h3>Choose your workspace</h3><p>Explore the available platform previews. Account opening and live connectivity require verified onboarding.</p></div><div className="platform-selector" role="tablist" aria-label="VTA workspace options"><button type="button" title="Select VTA Dashboard" aria-label="Select VTA Dashboard" className={platformChoice === 'web' ? 'platform-option active' : 'platform-option'} onClick={() => setPlatformChoice('web')}><span className="platform-mark platform-mark--vta"><img src="/logo-mark.svg" alt="" aria-hidden="true"/></span><span><strong>VTA Dashboard</strong><small>Platform overview · account management</small></span><ArrowUpRight size={14}/></button><button type="button" title="Select Momentum Booster" aria-label="Select Momentum Booster" className={platformChoice === 'vta-terminal' ? 'platform-option active' : 'platform-option'} onClick={() => setPlatformChoice('vta-terminal')}><span className="platform-mark platform-mark--mt"><LineChart size={16} aria-hidden="true"/></span><span><strong>Momentum Booster</strong><small>Part of the VTA Web Trading Terminal</small></span><ArrowUpRight size={14}/></button><button type="button" title="Select VTA Web Trading Terminal" aria-label="Select VTA Web Trading Terminal" className={platformChoice === 'vta-terminal' ? 'platform-option active' : 'platform-option'} onClick={() => setPlatformChoice('vta-terminal')}><span className="platform-mark platform-mark--mt"><img src="/logo-mark.svg" alt="VTA Web Trading Terminal"/></span><span><strong>VTA Web Trading Terminal</strong><small>Market tools and account access</small></span><ArrowUpRight size={14}/></button></div><div className="open-account-action"><span><b>{platformChoice === 'web' ? 'VTA Dashboard' : platformChoice === 'vta-terminal' ? 'VTA Trading Terminal' : 'VTA Web Trading Terminal'}</b><small>Selected platform · demo onboarding only</small></span><Link className="button button--small" to={platformChoice === 'web' ? (portal ? '/portal/terminal' : '/web-terminal') : platformChoice === 'vta-terminal' ? '/vta-terminal' : '/vta-terminal'}>Continue <ArrowRight size={14}/></Link></div></section></div>;
 }
 function DemoRoute() { return <PublicShell><section className="section shell demo-surface"><InstitutionalDashboard /></section></PublicShell>; }
 function PortalContent({ active, path }: { active: string; path: string }) {
-  if (path === '/portal') return <InstitutionalDashboard portal />;
-  if (path === '/portal/wallet' || path === '/portal/deposit' || path === '/portal/withdraw' || path === '/portal/transactions') return <FundsContent active={active}/>;
-  if (path === '/portal/robot' || path === '/portal/robot/subscription') return <RobotContent/>;
-  if (path === '/portal/terminal') return <div className="panel"><PanelHead title="Terminal access" icon={TerminalSquare}/><EmptyState icon={TerminalSquare} title="Terminal not connected" text="No client account or broker session is linked to this Portal." action={<Link className="button button--small" to="/web-terminal">Open public terminal preview</Link>} /></div>;
+  if (path === '/portal') return <ClientCommandCenter />;
+  if (path === '/portal/wallet' || path === '/portal/deposit' || path === '/portal/withdraw' || path === '/portal/transactions') return <PortalFundsPage active={active as 'Wallet' | 'Deposit' | 'Withdraw' | 'Transactions'}/>;
+  if (path === '/portal/robot' || path === '/portal/robot/subscription') return <MomentumBoosterDashboard/>;
+  if (path === '/portal/terminal') return <div className="panel"><PanelHead title="VTA Web Trading Terminal" icon={TerminalSquare}/><EmptyState icon={TerminalSquare} title="Terminal not connected" text="No client account or trading-data connection is linked to this terminal." action={<Link className="button button--small" to="/web-terminal">Open VTA Web Trading Terminal</Link>} /></div>;
   if (path === '/portal/markets') return <div className="panel"><PanelHead title="Market snapshots" icon={Globe2}/><EmptyState icon={Globe2} title="No live market data" text="Market snapshots require a connected data provider." /></div>;
   return <div className="panel"><PanelHead title={active} icon={Database}/><EmptyState title={`No ${active.toLowerCase()} available`} text="This client area remains empty until a verified VTA account and relevant data service are connected." /></div>;
 }
@@ -493,7 +696,7 @@ function FundsContent({ active }: { active: string }) {
 
 function RobotContent() {
   const modules = ['Overview','Live Status','Market Regime','Signal','Signal Score','Risk','Positions','Trade History','Execution Log','Strategy','Risk Configuration','News','AI','License','Audit'];
-  return <><div className="portal-welcome"><div><span className="eyebrow">MOMENTUM BOOSTER / ADVANCED V1</span><h2>Source tested by the user. Runtime still unconnected.</h2><p>The complete MQL5 source is present in the project, and the user reports testing this same version. Test results remain private. This Portal shows truthful DEMO and UNAVAILABLE states until an approved MT5 connector, account identity, license and data feed exist.</p></div><Status tone="good">SOURCE PRESENT</Status></div><div className="metric-grid"><Metric label="Source" value="V1" note="Implemented from specification" icon={FileText}/><Metric label="Test status" value="USER TESTED" note="Results private" icon={Check}/><Metric label="Runtime" value="DEMO" note="No live order path" icon={Bot}/><Metric label="Signal engine" value="7-part" note="Weighted score" icon={Radar}/><Metric label="Executions" value="—" note="Unavailable" icon={Activity}/></div><div className="panel"><PanelHead title="Required module map" icon={SlidersHorizontal}/><div className="portal-module-grid">{modules.map((module) => <div key={module}><span>{module}</span><Status>{module === 'Strategy' ? '4 MODES / UNTESTED' : module === 'Risk' ? 'RISK-FIRST / UNTESTED' : module === 'Audit' ? 'CODED / UNTESTED' : 'DEMO / UNAVAILABLE'}</Status></div>)}</div></div><div className="portal-grid"><div className="panel"><PanelHead title="Runtime gate" icon={ShieldCheck}/><EmptyState icon={LockKeyhole} title="No trade permission" text="License, connector, account, news, risk and margin gates are not configured. Existing local protections remain part of the EA source." /></div><div className="panel"><PanelHead title="Source and testing" icon={FileText}/><EmptyState icon={FileText} title="MetaTrader testing required" text="MetaEditor compilation, Strategy Tester, broker execution and VTA synchronization must be performed by the user in an MT5 environment." /></div></div></>;
+  return <><div className="portal-welcome"><div><span className="eyebrow">MOMENTUM BOOSTER / ADVANCED V1</span><h2>Source tested by the user. Runtime still unconnected.</h2><p>The existing Momentum Booster source is present in the project, and the user reports testing this same version. Test results remain private. This Portal shows truthful DEMO and UNAVAILABLE states until approved trading, account identity, license and data-feed services are configured.</p></div><Status tone="good">SOURCE PRESENT</Status></div><div className="metric-grid"><Metric label="Source" value="V1" note="Implemented from specification" icon={FileText}/><Metric label="Test status" value="USER TESTED" note="Results private" icon={Check}/><Metric label="Runtime" value="DEMO" note="No live order path" icon={Bot}/><Metric label="Signal engine" value="7-part" note="Weighted score" icon={Radar}/><Metric label="Executions" value="—" note="Unavailable" icon={Activity}/></div><div className="panel"><PanelHead title="Required module map" icon={SlidersHorizontal}/><div className="portal-module-grid">{modules.map((module) => <div key={module}><span>{module}</span><Status>{module === 'Strategy' ? '4 MODES / UNTESTED' : module === 'Risk' ? 'RISK-FIRST / UNTESTED' : module === 'Audit' ? 'CODED / UNTESTED' : 'DEMO / UNAVAILABLE'}</Status></div>)}</div></div><div className="portal-grid"><div className="panel"><PanelHead title="Runtime gate" icon={ShieldCheck}/><EmptyState icon={LockKeyhole} title="No trade permission" text="License, connector, account, news, risk and margin gates are not configured. Existing local protections remain part of the VTA automation source." /></div><div className="panel"><PanelHead title="Source and testing" icon={FileText}/><EmptyState icon={FileText} title="VTA Web Trading Terminal testing required" text="Trading integration tests, broker execution and VTA synchronization remain unavailable until approved services are connected." /></div></div></>;
 }
 
 function AdminPage() {
@@ -503,7 +706,7 @@ function AdminPage() {
     ? { label: 'Client details', to: location.pathname, icon: Users }
     : (adminNav.find((item) => item.to === location.pathname) || adminNav[0]);
   const denied = new URLSearchParams(location.search).has('denied');
-  return <div className="app-shell admin-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close operations navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar app-sidebar--admin ${open ? 'app-sidebar--open' : ''}`}><Brand compact/><div className="sidebar-caption">ADMIN / OPERATIONS</div><WorkspaceNavigation sections={adminSections} onNavigate={() => setOpen(false)} label="Admin navigation"/><div className="sidebar-footer"><Status tone="amber">RESTRICTED</Status><span>Role-based access</span></div></aside><main className="app-main"><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="admin" navigationOpen={open}/><div className="app-content"><div className="access-banner"><LockKeyhole size={18}/><span>{denied ? 'Administrator identity is valid but does not have an approved VTA operations role.' : 'Administrative routes are server-protected. No operational record is exposed without an approved role.'}</span></div><AdminOperationsContent active={active.label}/></div></main></div>;
+  return <div className="app-shell admin-shell" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}><a className="skip-link" href="#workspace-main">Skip to workspace content</a><button className={`sidebar-backdrop ${open ? 'sidebar-backdrop--visible' : ''}`} type="button" aria-label="Close operations navigation" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}/><aside id="workspace-sidebar" className={`app-sidebar app-sidebar--admin ${open ? 'app-sidebar--open' : ''}`}><Brand compact/><div className="sidebar-caption">ADMIN / OPERATIONS</div><WorkspaceNavigation sections={adminSections} onNavigate={() => setOpen(false)} label="Admin navigation"/><div className="sidebar-footer"><Status tone="amber">RESTRICTED</Status><span>Role-based access</span></div></aside><main id="workspace-main" className="app-main" tabIndex={-1}><AppTopbar title={active.label} onMenu={() => setOpen(!open)} kind="admin" navigationOpen={open}/><div className="app-content"><div className="access-banner"><LockKeyhole size={18}/><span>{denied ? 'Administrator identity is valid but does not have an approved VTA operations role.' : 'Administrative routes are server-protected. No operational record is exposed without an approved role.'}</span></div><AdminOperationsContent active={active.label}/></div></main></div>;
 }
 
 function AdminContent({ active }: { active: string }) { return <><div className="admin-summary"><div><span className="eyebrow">OPERATIONS CONTROL</span><h2>{active}</h2><p>Search, filter and status architecture is ready. There are no client, payment, KYC, market, or execution records in this environment.</p></div><div className="filter-row"><div className="search-control"><Search size={16}/><input aria-label={`Search ${active}`} placeholder={`Search ${active.toLowerCase()}`} /></div><button className="button button--ghost button--small"><SlidersHorizontal size={15}/>Filter</button></div></div><div className="table-card admin-table"><table><thead><tr><th>Record</th><th>State</th><th>Owner</th><th>Updated</th><th aria-label="Actions"></th></tr></thead><tbody><tr><td colSpan={5}><EmptyState icon={Database} title={`No ${active.toLowerCase()} records`} text="VTA does not create example customer or financial operations data. Connect an authorized operational data source to populate this table." /></td></tr></tbody></table></div></>;
@@ -533,13 +736,40 @@ function NotFound() { return <PublicShell><section className="not-found shell"><
 
 export function App() {
   usePageMeta();
+  const [isDemoSession, setIsDemoSession] = useState(hasDemoPreviewSession);
+  const navigate = useNavigate();
+  const startDemoSession = () => {
+    try {
+      window.sessionStorage.setItem(DEMO_PREVIEW_SESSION_KEY, 'active');
+    } catch {
+      // The in-memory preview session still works when session storage is unavailable.
+    }
+    setIsDemoSession(true);
+  };
+  const endDemoSession = () => {
+    try {
+      window.sessionStorage.removeItem(DEMO_PREVIEW_SESSION_KEY);
+    } catch {
+      // Keep the demo-only session state in memory if storage is unavailable.
+    }
+    setIsDemoSession(false);
+    navigate('/login', { replace: true });
+  };
+  const signOut = async () => {
+    if (isDemoSession) {
+      endDemoSession();
+      return;
+    }
+    const response = await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    if (!response.ok) throw new Error('Sign out failed');
+    setIsDemoSession(false);
+    navigate('/login', { replace: true });
+  };
   return <Routes>
     <Route path="/" element={<PublicShell><HomePage /></PublicShell>} />
     <Route path="/markets" element={<MarketsPage />} />
     <Route path="/platforms" element={<PlatformsPage />} />
     <Route path="/web-terminal" element={<TerminalPage />} />
-    <Route path="/mt4" element={<PlatformDetail platform="MT4" />} />
-    <Route path="/mt5" element={<PlatformDetail platform="MT5" />} />
     <Route path="/robots/momentum-booster" element={<MomentumBoosterPage />} />
     <Route path="/analysis" element={<AnalysisPage />} />
     <Route path="/news" element={<NewsPage />} />
@@ -547,10 +777,10 @@ export function App() {
     <Route path="/about" element={<AboutPage />} />
     <Route path="/faq" element={<FaqPage />} />
     <Route path="/contact" element={<ContactPage />} />
-    <Route path="/login" element={<AuthPage />} />
-    <Route path="/register" element={<AuthPage register />} />
+    <Route path="/login" element={<AuthPage onDemoSignIn={startDemoSession} />} />
+    <Route path="/register" element={<AuthPage register onDemoSignIn={startDemoSession} />} />
     <Route path="/demo" element={<DemoRoute />} />
-    <Route path="/portal/*" element={<PortalRoute />} />
+    <Route path="/portal/*" element={<PortalRoute isDemoSession={isDemoSession} onSignOut={signOut} />} />
     <Route path="/admin/*" element={<AdminRoute />} />
     <Route path="*" element={<NotFound />} />
   </Routes>;
