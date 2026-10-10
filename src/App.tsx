@@ -156,8 +156,7 @@ function usePageMeta() {
 
 function Brand({ compact = false, to = '/' }: { compact?: boolean; to?: string }) {
   return <Link className={`brand ${compact ? 'brand--compact' : ''}`} to={to} aria-label={to === '/portal' ? 'VTA Client Dashboard' : 'VTA home'}>
-    <img src="/logo-mark.svg" width="36" height="36" alt="" />
-    <span><strong>VTA</strong><em>VECTOR TRADING ALLIANCE</em></span>
+    <img className="brand-logo" src="/assets/branding/vta-logo-original.jpeg" width={828} height={400} alt="VTA — Vector Trade & Analytics" />
   </Link>;
 }
 

@@ -1824,3 +1824,13 @@ body {
   .flagship-section--compact .flagship-product-visual--integrated { min-height: 0; padding-top: 22px; margin-bottom: -18px; }
   .flagship-section--compact .flagship-product-visual--integrated > img { height: min(92vw, 380px); }
 }
+
+/* Original VTA logo: same asset everywhere, only display size changes. */
+.brand > img.brand-logo { display: block; width: auto; height: 52px; max-width: none; aspect-ratio: 828 / 400; object-fit: contain; filter: none; border-radius: 0; }
+.site-footer .brand > img.brand-logo, .footer-grid .brand > img.brand-logo { height: 84px; }
+.auth-copy .brand > img.brand-logo { height: 96px; }
+.app-shell .app-sidebar .brand > img.brand-logo, .portal-shell .app-sidebar .brand > img.brand-logo { width: 100%; max-width: 196px; height: auto; }
+@media (max-width: 640px) {
+  .brand > img.brand-logo { height: 48px; }
+  .auth-copy .brand > img.brand-logo { height: 80px; }
+}
