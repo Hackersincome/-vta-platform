@@ -1756,3 +1756,71 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .hero--global .globe-stage > img { animation:none; }
 }
+
+/* Header auth actions: keep Sign In visible between the mobile breakpoint and 1050px. */
+@media (max-width: 1050px) {
+  .header-actions .header-signin { display: inline-flex; }
+}
+
+/* Momentum Booster: transparent cutout lit into the section instead of a boxed photo. */
+.flagship-section--compact .flagship-product-visual--integrated {
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: 28px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    radial-gradient(ellipse 46% 40% at 50% 34%, rgba(74,128,236,.2), transparent 70%),
+    radial-gradient(ellipse 58% 46% at 50% 44%, rgba(196,164,104,.12), transparent 72%);
+}
+.flagship-section--compact .flagship-product-visual--integrated::before {
+  top: 9%;
+  left: 50%;
+  width: min(78%, 340px);
+  transform: translateX(-50%);
+  border-color: rgba(200,184,132,.16);
+}
+.flagship-section--compact .flagship-product-visual--integrated .flagship-product-halo {
+  top: 14%;
+  left: 50%;
+  width: min(64%, 280px);
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(92,146,255,.22), rgba(196,164,104,.1) 42%, transparent 70%);
+  filter: blur(26px);
+}
+.flagship-product-floor {
+  position: absolute;
+  z-index: -1;
+  bottom: 0;
+  left: 50%;
+  width: 82%;
+  height: 34%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse 50% 60% at 50% 100%, rgba(0,0,0,.55), transparent 72%);
+  pointer-events: none;
+}
+.flagship-section--compact .flagship-product-visual--integrated > img {
+  display: block;
+  width: auto;
+  height: clamp(300px, 34vw, 440px);
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  transform: translateX(-10%);
+  animation: none;
+  filter: brightness(.94) saturate(.92) contrast(1.04) drop-shadow(0 0 30px rgba(84,140,255,.16)) drop-shadow(0 24px 40px rgba(0,0,0,.5));
+  -webkit-mask-image: linear-gradient(to bottom, #000 58%, transparent 98%), linear-gradient(to left, transparent 0, #000 16%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to bottom, #000 58%, transparent 98%), linear-gradient(to left, transparent 0, #000 16%);
+  mask-composite: intersect;
+}
+@media (max-width: 640px) {
+  .flagship-section--compact .flagship-product-visual--integrated { min-height: 0; padding-top: 22px; margin-bottom: -18px; }
+  .flagship-section--compact .flagship-product-visual--integrated > img { height: min(92vw, 380px); }
+}
